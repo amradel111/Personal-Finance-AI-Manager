@@ -1,12 +1,6 @@
-agents.md
-short_term_goal.md
-what_is_this_project.md
-tasks.md
-PROJECT_STRUCTURE.md
-PHASE1_VERIFICATION_COMPLETE.md
-PHASE1_COMPLETE.md
-backend/README.md
-backend/prisma/DATABASE_SCHEMA.md
+# Markdown
+*.md
+!QUICK_START.md
 
 # Dependencies
 node_modules/

@@ -5,6 +5,7 @@ export interface SignupData {
   password: string;
   firstName: string;
   lastName: string;
+  phone: string;
 }
 
 export interface LoginData {
@@ -15,22 +16,28 @@ export interface LoginData {
 export interface AuthResponse {
   message: string;
   user: {
-    id: number;
+    id: string;
     email: string;
     firstName: string;
     lastName: string;
+    phone: string;
     createdAt: string;
   };
   token: string;
 }
 
 export interface UserProfile {
-  id: number;
+  id: string;
   email: string;
   firstName: string;
   lastName: string;
+  phone: string;
   createdAt: string;
   userProfile?: any;
+}
+
+export interface CheckProfileStatusResponse {
+  hasProfile: boolean;
 }
 
 /**
@@ -58,9 +65,19 @@ export const getProfile = async (): Promise<{ user: UserProfile }> => {
 };
 
 /**
+ * Check if authenticated user has completed profile setup
+ */
+export const checkProfileStatus = async (): Promise<CheckProfileStatusResponse> => {
+  const response = await api.get('/auth/check-profile');
+  return response.data;
+};
+
+/**
  * Log out the current user (client-side)
  */
 export const logout = (): void => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
 };

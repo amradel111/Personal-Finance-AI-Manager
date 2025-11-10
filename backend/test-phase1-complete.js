@@ -54,7 +54,8 @@ async function runTests() {
         email: testEmail,
         password: 'TestPassword123!',
         firstName: 'John',
-        lastName: 'Doe'
+        lastName: 'Doe',
+        phone: '+12025551234'
       });
       
       const hasToken = !!response.data.token;
