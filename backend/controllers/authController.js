@@ -3,26 +3,60 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { hashPassword, comparePassword } = require('../utils/passwordUtils');
 const { generateToken } = require('../utils/jwt');
+const { isValidEmail, isStrongPassword, sanitizeName, isValidPhone } = require('../utils/validation');
 
 const signup = async (req, res) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, phone } = req.body;
+
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const safeFirstName = sanitizeName(firstName);
+    const safeLastName = sanitizeName(lastName);
+    const normalizedPhone = typeof phone === 'string' ? phone.trim() : '';
 
     // Validate input
-    if (!email || !password || !firstName || !lastName) {
+    if (!normalizedEmail || !password || !safeFirstName || !safeLastName || !normalizedPhone) {
       return res.status(400).json({
-        error: 'All fields are required: email, password, firstName, lastName'
+        error: 'All fields are required: email, password, firstName, lastName, phone'
+      });
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        error: 'Please provide a valid email address'
+      });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        error: 'Password must be at least 8 characters and include upper, lower, number, and special character'
+      });
+    }
+
+    if (!isValidPhone(normalizedPhone)) {
+      return res.status(400).json({
+        error: 'Please provide a valid phone number with country code'
       });
     }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     });
 
     if (existingUser) {
       return res.status(409).json({
         error: 'User with this email already exists'
+      });
+    }
+
+    const existingPhoneUser = await prisma.user.findUnique({
+      where: { phone: normalizedPhone }
+    });
+
+    if (existingPhoneUser) {
+      return res.status(409).json({
+        error: 'User with this phone number already exists'
       });
     }
 
@@ -32,22 +66,24 @@ const signup = async (req, res) => {
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
-        firstName,
-        lastName
+        firstName: safeFirstName,
+        lastName: safeLastName,
+        phone: normalizedPhone
       },
       select: {
         id: true,
         email: true,
         firstName: true,
         lastName: true,
+        phone: true,
         createdAt: true
       }
     });
 
     // Generate JWT token
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.email);
 
     res.status(201).json({
       message: 'User created successfully',
@@ -67,16 +103,24 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
     // Validate input
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         error: 'Email and password are required'
       });
     }
 
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        error: 'Please provide a valid email address'
+      });
+    }
+
     // Find user
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     });
 
     if (!user) {
@@ -93,16 +137,24 @@ const login = async (req, res) => {
       });
     }
 
+    // Update last login timestamp
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
+
     // Generate JWT token
-    const token = generateToken(user.id);
+    const token = generateToken(user.id, user.email);
 
     // Return user data (excluding password)
     const userData = {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      createdAt: user.createdAt
+      id: updatedUser.id,
+      email: updatedUser.email,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      phone: updatedUser.phone,
+      createdAt: updatedUser.createdAt,
+      lastLogin: updatedUser.lastLogin
     };
 
     res.json({
@@ -130,6 +182,7 @@ const getProfile = async (req, res) => {
         email: true,
         firstName: true,
         lastName: true,
+        phone: true,
         createdAt: true,
         profile: true
       }
@@ -153,8 +206,31 @@ const getProfile = async (req, res) => {
   }
 };
 
+const checkProfileStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const profile = await prisma.userProfile.findUnique({
+      where: { userId }
+    });
+
+    const hasProfile = Boolean(profile);
+
+    res.json({
+      hasProfile,
+      profileComplete: hasProfile
+    });
+  } catch (error) {
+    console.error('Check profile status error:', error);
+    res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
-  getProfile
+  getProfile,
+  checkProfileStatus
 };

@@ -17,6 +17,7 @@ model User {
   password      String
   firstName     String   @map("first_name")
   lastName      String   @map("last_name")
+  phone         String   @unique @map("phone")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   lastLogin     DateTime? @map("last_login")

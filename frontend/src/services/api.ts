@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearStoredAuth, getStoredToken } from '../utils/authStorage';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -12,8 +13,8 @@ const api = axios.create({
 // Request interceptor - Add JWT token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    const token = getStoredToken();
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -34,11 +35,13 @@ api.interceptors.response.use(
       // Server responded with error status
       const { status, data } = error.response;
 
-      if (status === 401) {
-        // Unauthorized - clear token and redirect to login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+      const requestUrl = error.config?.url ?? '';
+      const isLoginRequest = requestUrl.endsWith('/auth/login');
+
+      if (status === 401 && !isLoginRequest) {
+        // Unauthorized - clear token and redirect to auth
+        clearStoredAuth();
+        window.location.href = '/auth';
       }
 
       // Return error message from server if available
