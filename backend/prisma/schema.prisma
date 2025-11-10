@@ -1,0 +1,152 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User authentication table
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  lastLogin     DateTime? @map("last_login")
+
+  // Relationships
+  profile       UserProfile?
+  expenses      MonthlyExpense[]
+  healthRecords FinancialHealth[]
+
+  @@map("users")
+}
+
+// User Profile (Dataset 1)
+model UserProfile {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique @map("user_id")
+  householdSize           Int      @map("household_size")
+  numAdults               Int      @map("num_adults")
+  numChildren             Int      @map("num_children")
+  locationType            String   @map("location_type") // urban, suburban, rural
+  lifeStage               String   @map("life_stage") // young_professional, young_family, etc.
+  employmentStatus        String   @map("employment_status")
+  monthlyHouseholdIncome  Float    @map("monthly_household_income")
+  incomeStability         String   @map("income_stability") // stable, variable, seasonal
+  creditScore             Int      @map("credit_score")
+  totalDebt               Float    @map("total_debt")
+  monthlyDebtPayments     Float    @map("monthly_debt_payments")
+  rentOrMortgage          Float    @map("rent_or_mortgage")
+  savingsGoalMonthly      Float    @map("savings_goal_monthly")
+  hasHealthInsurance      Boolean  @map("has_health_insurance")
+  financialGoalType       String   @map("financial_goal_type") // emergency_fund, home, retirement, etc.
+  emergencyFundMonths     Float    @map("emergency_fund_months")
+  savingsRatePercentage   Float    @map("savings_rate_percentage")
+  debtToIncomeRatio       Float    @map("debt_to_income_ratio")
+  housingCostRatio        Float    @map("housing_cost_ratio")
+  monthlySavingsActual    Float    @map("monthly_savings_actual")
+  financialHealthScore    Int      @map("financial_health_score")
+  optimizationPriority    String   @map("optimization_priority") // critical, high, medium, low, none
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+// Monthly Expenses (Dataset 2)
+model MonthlyExpense {
+  id                              String   @id @default(uuid())
+  userId                          String   @map("user_id")
+  monthYear                       DateTime @map("month_year") // Format: YYYY-MM-01
+  
+  // Expense categories
+  housingUtilities                Float    @map("housing_utilities")
+  groceries                       Float
+  restaurantsCafes                Float    @map("restaurants_cafes")
+  transportationFuel              Float    @map("transportation_fuel")
+  publicTransport                 Float    @map("public_transport")
+  healthcarePharmacy              Float    @map("healthcare_pharmacy")
+  educationTuition                Float    @map("education_tuition")
+  childcare                       Float
+  clothingPersonalCare            Float    @map("clothing_personal_care")
+  entertainmentHobbies            Float    @map("entertainment_hobbies")
+  subscriptions                   Float
+  otherShopping                   Float    @map("other_shopping")
+  giftsCharity                    Float    @map("gifts_charity")
+  miscellaneous                   Float
+  
+  // Calculated fields
+  totalExpenses                   Float    @map("total_expenses")
+  totalEssentialSpending          Float    @map("total_essential_spending")
+  totalDiscretionarySpending      Float    @map("total_discretionary_spending")
+  essentialSpendingRatio          Float    @map("essential_spending_ratio")
+  discretionarySpendingRatio      Float    @map("discretionary_spending_ratio")
+  savingsThisMonth                Float    @map("savings_this_month")
+  spendingVsLastMonthPercentage   Float?   @map("spending_vs_last_month_percentage")
+  highestSpendingCategory         String   @map("highest_spending_category")
+  meets50_30_20Rule               Boolean  @map("meets_50_30_20_rule")
+  
+  createdAt                       DateTime @default(now()) @map("created_at")
+  updatedAt                       DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, monthYear])
+  @@map("monthly_expenses")
+}
+
+// Financial Health Assessment (Dataset 3)
+model FinancialHealth {
+  id                            String   @id @default(uuid())
+  userId                        String   @map("user_id")
+  monthYear                     DateTime @map("month_year")
+  
+  // Health metrics
+  financialStressLevel          Int      @map("financial_stress_level")
+  financialHealthScore          Int      @map("financial_health_score")
+  optimizationPriority          String   @map("optimization_priority")
+  
+  // Flags
+  needsEmergencyFund            Boolean  @map("needs_emergency_fund")
+  overspendingRestaurants       Boolean  @map("overspending_restaurants")
+  overspendingEntertainment     Boolean  @map("overspending_entertainment")
+  overspendingSubscriptions     Boolean  @map("overspending_subscriptions")
+  highDebtBurden                Boolean  @map("high_debt_burden")
+  insufficientSavings           Boolean  @map("insufficient_savings")
+  housingCostTooHigh            Boolean  @map("housing_cost_too_high")
+  lifestyleInflationDetected    Boolean  @map("lifestyle_inflation_detected")
+  irregularSavingsPattern       Boolean  @map("irregular_savings_pattern")
+  
+  // Positive indicators
+  hasAdequateEmergencyFund      Boolean  @map("has_adequate_emergency_fund")
+  healthySavingsRate            Boolean  @map("healthy_savings_rate")
+  controlledDiscretionarySpending Boolean @map("controlled_discretionary_spending")
+  lowDebtBurden                 Boolean  @map("low_debt_burden")
+  
+  // Summary
+  overallFinancialHealth        String   @map("overall_financial_health")
+  needsOptimization             Boolean  @map("needs_optimization")
+  optimizationUrgency           Int      @map("optimization_urgency")
+  top3ProblemAreas              String   @map("top_3_problem_areas") // JSON array as string
+  
+  createdAt                     DateTime @default(now()) @map("created_at")
+  updatedAt                     DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, monthYear])
+  @@map("financial_health")
+}

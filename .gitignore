@@ -1,1 +1,34 @@
 agents.md
+short_term_goal.md
+what_is_this_project.md
+tasks.md
+PROJECT_STRUCTURE.md
+PHASE1_VERIFICATION_COMPLETE.md
+PHASE1_COMPLETE.md
+backend/README.md
+backend/prisma/DATABASE_SCHEMA.md
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swos
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
