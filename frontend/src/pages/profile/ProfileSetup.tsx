@@ -1,6 +1,17 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createProfile, type EmploymentStatus, type FinancialGoalType, type IncomeStability, type LocationType, type LifeStage } from '../../services/profileService';
+import Header from '../../components/Header';
+import {
+  createProfile,
+  updateProfile,
+  getProfile as getStoredProfile,
+  type EmploymentStatus,
+  type FinancialGoalType,
+  type IncomeStability,
+  type LocationType,
+  type LifeStage,
+  type UserProfileRecord,
+} from '../../services/profileService';
 import { useAuth } from '../../context/AuthContext';
 import Select from '../../components/Select';
 
@@ -19,6 +30,9 @@ const ProfileSetup = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [household_size, setHouseholdSize] = useState<number>(1);
   const [num_adults, setNumAdults] = useState<number>(1);
@@ -47,6 +61,46 @@ const ProfileSetup = () => {
     return { dti, hcr, srate };
   }, [monthly_household_income, monthly_debt_payments, rent_or_mortgage, savings_goal_monthly]);
 
+  const populateFromProfile = (profile: UserProfileRecord) => {
+    setHouseholdSize(profile.householdSize);
+    setNumAdults(profile.numAdults);
+    setNumChildren(profile.numChildren);
+    setLocationType(profile.locationType);
+    setLifeStage(profile.lifeStage);
+    setEmploymentStatus(profile.employmentStatus);
+    setMonthlyIncome(profile.monthlyHouseholdIncome);
+    setIncomeStability(profile.incomeStability);
+    setCreditScore(profile.creditScore);
+    setTotalDebt(profile.totalDebt);
+    setMonthlyDebtPayments(profile.monthlyDebtPayments);
+    setRentOrMortgage(profile.rentOrMortgage);
+    setSavingsGoalMonthly(profile.savingsGoalMonthly);
+    setHasHealthInsurance(Boolean(profile.hasHealthInsurance));
+    setFinancialGoalType(profile.financialGoalType);
+    setEmergencyFundMonths(profile.emergencyFundMonths);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadProfile = async () => {
+      try {
+        const existing = await getStoredProfile();
+        if (existing?.profile && isMounted) {
+          setIsEditing(true);
+          populateFromProfile(existing.profile);
+        }
+      } catch (error) {
+        console.warn('Failed to preload profile setup form:', error);
+      } finally {
+        if (isMounted) setIsLoadingProfile(false);
+      }
+    };
+    void loadProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
     if (!Number.isFinite(household_size) || household_size < 1) e.household_size = 'Must be at least 1';
@@ -65,6 +119,7 @@ const ProfileSetup = () => {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setFormError('');
+    setSuccessMessage('');
     const v = validate();
     if (Object.keys(v).length) {
       setErrors(v);
@@ -74,7 +129,7 @@ const ProfileSetup = () => {
 
     setIsSubmitting(true);
     try {
-      await createProfile({
+      const payload = {
         household_size,
         num_adults,
         num_children,
@@ -91,9 +146,19 @@ const ProfileSetup = () => {
         has_health_insurance,
         financial_goal_type,
         emergency_fund_months,
-      });
+      };
+
+      const response = isEditing
+        ? await updateProfile(payload)
+        : await createProfile(payload);
+
+      const savedProfile = response.profile;
+      populateFromProfile(savedProfile);
+      setIsEditing(true);
+
       await refreshProfile();
-      navigate('/dashboard', { replace: true });
+
+      setSuccessMessage('Your profile details have been saved.');
     } catch (err) {
       const message = typeof err === 'string' ? err : err instanceof Error ? err.message : 'Failed to save profile';
       setFormError(message);
@@ -103,13 +168,16 @@ const ProfileSetup = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900 overflow-auto">
+    <div className="relative min-h-screen bg-slate-950 text-slate-100">
       {/* Gradient background consistent with Auth page */}
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="absolute inset-0 opacity-[0.03]" style={{
-          backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),\n                           linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
-        }} />
+      <div className="fixed inset-0 -z-10 pointer-events-none bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),\n                           linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)` ,
+            backgroundSize: '50px 50px',
+          }}
+        />
         <div className="absolute top-0 left-0 w-full h-full">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full filter blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full filter blur-3xl" />
@@ -117,17 +185,33 @@ const ProfileSetup = () => {
         </div>
       </div>
 
-      <div className="relative min-h-screen flex items-start md:items-center justify-center px-4 py-10 md:py-16">
-        <div className="relative bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden w-full max-w-5xl transition-all duration-700 backdrop-blur-sm mt-10 md:mt-16">
-          <div className="px-6 md:px-10 py-8 md:py-10">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Profile Setup</h1>
-            <p className="text-slate-600 text-sm mt-1">Tell us about your household and finances to personalize insights.</p>
+      <div className="relative z-10 min-h-screen">
+        <Header />
 
-            {formError && (
-              <div className="mt-4 rounded-md bg-rose-50 border border-rose-200 px-4 py-2 text-sm text-rose-600" role="alert">{formError}</div>
-            )}
+        <main className="px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+          <div className="flex items-start md:items-center justify-center">
+            <div className="relative bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden w-full max-w-5xl transition-all duration-700 backdrop-blur-sm">
+              <div className="px-6 md:px-10 py-8 md:py-10">
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Profile Setup</h1>
+                <p className="text-slate-600 text-sm mt-1">Tell us about your household and finances to personalize insights.</p>
 
-            <form className="mt-8 space-y-10" onSubmit={onSubmit} noValidate>
+                {isLoadingProfile && (
+                  <div className="mt-4 rounded-md bg-slate-100 border border-slate-200 px-4 py-3 text-sm text-slate-600" role="status">
+                    Loading your profile information...
+                  </div>
+                )}
+                {formError && (
+                  <div className="mt-4 rounded-md bg-rose-50 border border-rose-200 px-4 py-2 text-sm text-rose-600" role="alert">
+                    {formError}
+                  </div>
+                )}
+                {successMessage && !formError && (
+                  <div className="mt-4 rounded-md bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-700" role="status">
+                    {successMessage}
+                  </div>
+                )}
+
+                <form className="mt-8 space-y-10" onSubmit={onSubmit} noValidate>
               {/* Household Section */}
               <div>
                 <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-4">Household</h2>
@@ -321,19 +405,29 @@ const ProfileSetup = () => {
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-3">
-                <button type="button" onClick={() => navigate('/dashboard')} className="rounded-full border border-slate-300 bg-white text-slate-700 text-xs font-bold px-8 py-3 uppercase tracking-wider transition-transform hover:scale-95 active:scale-90">
-                  Skip for now
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="rounded-full border border-slate-300 bg-white text-slate-700 text-xs font-bold px-8 py-3 uppercase tracking-wider transition-transform hover:scale-95 active:scale-90"
+                >
+                  {isEditing ? 'Back to Dashboard' : 'Skip for now'}
                 </button>
-                <button type="submit" disabled={isSubmitting} className="rounded-full border border-slate-900 bg-slate-900 text-white text-xs font-bold px-11 py-3 uppercase tracking-wider transition-transform hover:scale-95 active:scale-90 disabled:opacity-60 disabled:cursor-not-allowed">
-                  {isSubmitting ? 'Saving...' : 'Save Profile'}
+                <button
+                  type="submit"
+                  disabled={isSubmitting || isLoadingProfile}
+                  className="rounded-full border border-slate-900 bg-slate-900 text-white text-xs font-bold px-11 py-3 uppercase tracking-wider transition-transform hover:scale-95 active:scale-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Saving...' : isEditing ? 'Update Profile' : 'Save Profile'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    </main>
+  </div>
+</div>
+);
+}
 
 export default ProfileSetup;

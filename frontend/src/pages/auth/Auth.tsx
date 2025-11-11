@@ -219,9 +219,9 @@ const AuthPage = () => {
       : 'bg-rose-500';
 
   return (
-    <div className="fixed inset-0 bg-slate-900 overflow-auto">
+    <div className="fixed inset-0 bg-slate-950 overflow-auto">
       {/* Sophisticated background with subtle gradient mesh */}
-      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="fixed inset-0 -z-10 pointer-events-none bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
         {/* Subtle grid pattern overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
@@ -237,16 +237,14 @@ const AuthPage = () => {
         </div>
       </div>
 
-      {/* Logo */}
-      <div className="fixed top-8 left-10 z-50">
-        <h1 className="text-4xl font-extrabold text-white tracking-wide">
-          SaveMate
-        </h1>
-      </div>
+      {/* Brand header removed to avoid overlap at common laptop zoom levels */}
 
-      <div className="relative min-h-screen flex items-center justify-center px-4 py-16">
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-16">
+        <div className="mb-6">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-wide">SaveMate</h1>
+        </div>
         <div
-          className={`relative bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden w-full max-w-6xl min-h-[700px] transition-all duration-700 backdrop-blur-sm ${
+          className={`relative bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden w-full max-w-4xl min-h-[560px] transition-all duration-700 backdrop-blur-sm ${
             isSignUpMode ? 'right-panel-active' : ''
           }`}
         >
@@ -261,7 +259,7 @@ const AuthPage = () => {
             onSubmit={handleSignupSubmit}
             noValidate
             aria-busy={isSignupSubmitting}
-            className="bg-white flex flex-col items-center justify-center h-full px-12 text-center"
+            className="bg-white flex flex-col items-center justify-center h-full px-8 text-center"
           >
             <h1 className="text-3xl font-bold text-slate-900 mb-6">Create Account</h1>
 
@@ -395,7 +393,7 @@ const AuthPage = () => {
             onSubmit={handleLoginSubmit}
             noValidate
             aria-busy={isLoginSubmitting}
-            className="bg-white flex flex-col items-center justify-center h-full px-12 text-center"
+            className="bg-white flex flex-col items-center justify-center h-full px-8 text-center"
           >
             <h1 className="text-3xl font-bold text-slate-900 mb-6">Sign In</h1>
 
