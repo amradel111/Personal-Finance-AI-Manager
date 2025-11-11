@@ -31,8 +31,8 @@ app.get('/', (req, res) => {
 // API Routes will be added here
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
-// app.use('/api/expenses', require('./routes/expenses'));
-// app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/expenses', require('./routes/expenses'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 // app.use('/api/reports', require('./routes/reports'));
 
 // Error handling middleware
