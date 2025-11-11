@@ -3,6 +3,8 @@ import './App.css';
 import AuthPage from './pages/auth/Auth';
 import AuthProvider from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ProfileSetup from './pages/profile/ProfileSetup';
+import Dashboard from './pages/dashboard/Dashboard';
 
 const Placeholder = ({ title, message }: { title: string; message: string }) => (
   <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
@@ -24,14 +26,8 @@ function App() {
           <Route path="/signup" element={<Navigate to="/auth" replace />} />
 
           <Route element={<ProtectedRoute />}>
-            <Route
-              path="/dashboard"
-              element={<Placeholder title="Dashboard" message="Dashboard experience coming soon." />}
-            />
-            <Route
-              path="/profile-setup"
-              element={<Placeholder title="Profile Setup" message="Profile setup flow will appear here." />}
-            />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile-setup" element={<ProfileSetup />} />
           </Route>
 
           <Route

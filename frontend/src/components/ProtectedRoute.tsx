@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export const FullScreenLoader = () => (
@@ -11,8 +11,9 @@ export const FullScreenLoader = () => (
 );
 
 const ProtectedRoute = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return <FullScreenLoader />;
@@ -22,7 +23,36 @@ const ProtectedRoute = () => {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  return <Outlet />;
+  const handleLogout = () => {
+    logout();
+    navigate('/auth', { replace: true });
+  };
+
+  return (
+    <div className="min-h-screen relative">
+      <header className="fixed top-0 inset-x-0 z-50 bg-slate-900/90 border-b border-white/10">
+        <div className="flex items-center justify-between px-6 md:px-10 py-4">
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="text-white text-4xl font-extrabold tracking-wide hover:opacity-90"
+          >
+            SaveMate
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-full border border-white/20 bg-white/10 text-white text-xs font-bold px-5 py-2 uppercase tracking-wider hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/40"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
+      <div className="pt-24">
+        <Outlet />
+      </div>
+    </div>
+  );
 };
 
 export default ProtectedRoute;

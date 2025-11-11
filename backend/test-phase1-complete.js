@@ -48,6 +48,7 @@ async function runTests() {
     let authToken = null;
     let userId = null;
     const testEmail = `test${Date.now()}@example.com`;
+    const testPhone = `+1202555${Math.floor(10000 + Math.random()*89999)}`;
     
     try {
       const response = await axios.post(`${API_BASE}/auth/signup`, {
@@ -55,7 +56,7 @@ async function runTests() {
         password: 'TestPassword123!',
         firstName: 'John',
         lastName: 'Doe',
-        phone: '+12025551234'
+        phone: testPhone
       });
       
       const hasToken = !!response.data.token;
