@@ -5,7 +5,7 @@ import AuthProvider from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import ProfileSetup from './pages/profile/ProfileSetup';
 import Dashboard from './pages/dashboard/Dashboard';
-import ComingSoon from './pages/ComingSoon';
+import MonthlyReport from './pages/reports/MonthlyReport';
 import AddExpenses from './pages/expenses/AddExpenses';
 
 const Placeholder = ({ title, message }: { title: string; message: string }) => (
@@ -31,10 +31,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/add-expenses" element={<AddExpenses />} />
-            <Route
-              path="/monthly-report"
-              element={<ComingSoon title="Monthly Report" message="The Monthly Report page is coming soon." />}
-            />
+            <Route path="/monthly-report" element={<MonthlyReport />} />
           </Route>
 
           <Route

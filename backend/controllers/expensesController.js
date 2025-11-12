@@ -6,6 +6,7 @@ const {
   computeTotals,
   evaluateRule503020,
 } = require('../utils/expenses');
+const { computeFinancialHealth } = require('../utils/health');
 
 const SNAKE_TO_CAMEL = {
   housing_utilities: 'housingUtilities',
@@ -48,6 +49,35 @@ const prevMonth = (date) => {
   const d = new Date(Date.UTC(y, m, 1));
   d.setUTCMonth(m - 1);
   return d;
+};
+
+const updateProfileHealthScore = async (userId) => {
+  try {
+    // Get the user's profile
+    const profile = await prisma.userProfile.findUnique({ where: { userId } });
+    if (!profile) return;
+
+    // Get the latest expense record
+    const latestExpense = await prisma.monthlyExpense.findFirst({
+      where: { userId },
+      orderBy: { monthYear: 'desc' },
+    });
+
+    // Compute the financial health assessment
+    const assessment = computeFinancialHealth(profile, latestExpense);
+
+    // Update the profile with the new health score and optimization priority
+    await prisma.userProfile.update({
+      where: { userId },
+      data: {
+        financialHealthScore: assessment.financialHealthScore,
+        optimizationPriority: assessment.optimizationPriority,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating profile health score:', error);
+    // Don't throw - this is a background update
+  }
 };
 
 const createExpenses = async (req, res) => {
@@ -104,6 +134,9 @@ const createExpenses = async (req, res) => {
         meets50_30_20Rule: meets50_30_20,
       },
     });
+
+    // Update the user's financial health score in their profile
+    await updateProfileHealthScore(userId);
 
     return res.status(201).json({ expense: created });
   } catch (error) {
@@ -191,6 +224,9 @@ const updateExpenses = async (req, res) => {
       },
     });
 
+    // Update the user's financial health score in their profile
+    await updateProfileHealthScore(userId);
+
     return res.json({ expense: updated });
   } catch (error) {
     return res.status(500).json({ error: 'Internal server error' });
@@ -204,6 +240,10 @@ const deleteExpenses = async (req, res) => {
     const existing = await prisma.monthlyExpense.findUnique({ where: { id } });
     if (!existing || existing.userId !== userId) return res.status(404).json({ error: 'Not found' });
     await prisma.monthlyExpense.delete({ where: { id } });
+    
+    // Update the user's financial health score after deletion
+    await updateProfileHealthScore(userId);
+    
     return res.json({ success: true });
   } catch (error) {
     return res.status(500).json({ error: 'Internal server error' });

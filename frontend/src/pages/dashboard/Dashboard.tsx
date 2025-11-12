@@ -80,8 +80,8 @@ const SummaryGrid = ({ summary }: { summary: DashboardSummary }) => (
     />
     <StatCard
       title="Financial Health Score"
-      value={summary.financialHealthScore === null || summary.financialHealthScore === 0 ? 'N/A' : `${summary.financialHealthScore}/100`}
-      subtext={summary.financialHealthScore === null || summary.financialHealthScore === 0 ? 'Add expenses to calculate' : summary.meets_50_30_20_rule === null ? undefined : summary.meets_50_30_20_rule ? 'Aligned with 50/30/20 guideline' : 'Review spending mix'}
+      value={summary.financialHealthScore === null || summary.financialHealthScore === undefined ? 'N/A' : `${summary.financialHealthScore}/100`}
+      subtext={summary.financialHealthScore === null || summary.financialHealthScore === undefined ? 'Add expenses to calculate' : summary.meets_50_30_20_rule === null ? undefined : summary.meets_50_30_20_rule ? 'Aligned with 50/30/20 guideline' : 'Review spending mix'}
     />
   </div>
 );
