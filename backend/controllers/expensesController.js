@@ -35,12 +35,15 @@ const buildAmountsFromBody = (body, fallback = {}) => {
   return amounts;
 };
 
-const getIncome = async (userId) => {
+const getIncomeAndDebt = async (userId) => {
   const profile = await prisma.userProfile.findUnique({
     where: { userId },
-    select: { monthlyHouseholdIncome: true },
+    select: { monthlyHouseholdIncome: true, monthlyDebtPayments: true },
   });
-  return profile?.monthlyHouseholdIncome ?? 0;
+  return {
+    income: profile?.monthlyHouseholdIncome ?? 0,
+    monthlyDebtPayments: profile?.monthlyDebtPayments ?? 0,
+  };
 };
 
 const prevMonth = (date) => {
@@ -66,12 +69,14 @@ const updateProfileHealthScore = async (userId) => {
     // Compute the financial health assessment
     const assessment = computeFinancialHealth(profile, latestExpense);
 
-    // Update the profile with the new health score and optimization priority
+    // Update the profile with the new health score, optimization priority,
+    // and latest actual monthly savings so the snapshot stays aligned
     await prisma.userProfile.update({
       where: { userId },
       data: {
         financialHealthScore: assessment.financialHealthScore,
         optimizationPriority: assessment.optimizationPriority,
+        monthlySavingsActual: latestExpense?.savingsThisMonth ?? profile.monthlySavingsActual,
       },
     });
   } catch (error) {
@@ -95,9 +100,19 @@ const createExpenses = async (req, res) => {
     if (norm.error) return res.status(400).json({ error: `Invalid amount for ${norm.error}` });
 
     const totals = computeTotals(norm.amounts);
-    const income = await getIncome(userId);
-    const savingsThisMonth = income > 0 ? income - totals.totalExpenses : 0;
-    const meets50_30_20 = evaluateRule503020(income, totals.totalEssentialSpending, totals.totalDiscretionarySpending, savingsThisMonth);
+    const { income, monthlyDebtPayments } = await getIncomeAndDebt(userId);
+
+    // True net savings accounts for both expenses and debt payments
+    const savingsThisMonth = income > 0 ? income - totals.totalExpenses - monthlyDebtPayments : 0;
+
+    // For the 50/30/20 rule, treat debt payments as part of essential/obligation spending
+    const essentialForRule = totals.totalEssentialSpending + monthlyDebtPayments;
+    const meets50_30_20 = evaluateRule503020(
+      income,
+      essentialForRule,
+      totals.totalDiscretionarySpending,
+      savingsThisMonth,
+    );
 
     const lastMonth = prevMonth(monthYear);
     const prev = await prisma.monthlyExpense.findFirst({ where: { userId, monthYear: lastMonth } });
@@ -185,9 +200,19 @@ const updateExpenses = async (req, res) => {
     if (norm.error) return res.status(400).json({ error: `Invalid amount for ${norm.error}` });
 
     const totals = computeTotals(norm.amounts);
-    const income = await getIncome(userId);
-    const savingsThisMonth = income > 0 ? income - totals.totalExpenses : 0;
-    const meets50_30_20 = evaluateRule503020(income, totals.totalEssentialSpending, totals.totalDiscretionarySpending, savingsThisMonth);
+    const { income, monthlyDebtPayments } = await getIncomeAndDebt(userId);
+
+    // True net savings accounts for both expenses and debt payments
+    const savingsThisMonth = income > 0 ? income - totals.totalExpenses - monthlyDebtPayments : 0;
+
+    // For the 50/30/20 rule, treat debt payments as part of essential/obligation spending
+    const essentialForRule = totals.totalEssentialSpending + monthlyDebtPayments;
+    const meets50_30_20 = evaluateRule503020(
+      income,
+      essentialForRule,
+      totals.totalDiscretionarySpending,
+      savingsThisMonth,
+    );
 
     const lastMonth = prevMonth(existing.monthYear);
     const prev = await prisma.monthlyExpense.findFirst({ where: { userId, monthYear: lastMonth } });

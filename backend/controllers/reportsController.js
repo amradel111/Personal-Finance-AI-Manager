@@ -39,12 +39,28 @@ const parseTop3ProblemAreas = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value;
   if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (err) {
-      return [];
-    }
+    // Handle both JSON strings and Python-style single-quoted lists
+    const raw = value.trim();
+    const tryParse = (s) => {
+      try {
+        const parsed = JSON.parse(s);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (err) {
+        return null;
+      }
+    };
+
+    // First, try as-is
+    const direct = tryParse(raw);
+    if (direct) return direct;
+
+    // Fallback: replace single quotes with double quotes for simple list formats
+    const normalized = raw
+      .replace(/'/g, '"');
+    const fallback = tryParse(normalized);
+    if (fallback) return fallback;
+
+    return [];
   }
   return [];
 };
@@ -77,6 +93,7 @@ const normalizeHealthRecord = (record) => {
 };
 
 const mergeAssessment = (fallback, healthRecord) => {
+  // If there is no dataset record, use the computed assessment directly
   if (!healthRecord) {
     return {
       ...fallback,
@@ -84,10 +101,12 @@ const mergeAssessment = (fallback, healthRecord) => {
     };
   }
 
-  // Fill missing values from fallback to ensure complete data while preferring dataset values
+  // Prefer computed values for live assessments, using the dataset record only to
+  // fill in any gaps. Source is marked as computed for user-facing purposes.
   return {
-    ...fallback,
     ...healthRecord,
+    ...fallback,
+    source: 'computed',
   };
 };
 
@@ -122,7 +141,11 @@ const getMonthlyReport = async (req, res) => {
 
     const income = profile.monthlyHouseholdIncome ?? 0;
     const totalExpenses = expense.totalExpenses ?? 0;
-    const savingsAmount = income > 0 ? Math.max(0, income - totalExpenses) : (expense.savingsThisMonth ?? 0);
+    // savingsThisMonth is already true net savings from the expenses controller
+    const rawSavings = Number.isFinite(expense.savingsThisMonth)
+      ? expense.savingsThisMonth
+      : (income > 0 ? income - totalExpenses : 0);
+    const savingsAmount = rawSavings;
     const savingsRate = income > 0 ? (savingsAmount / income) : 0;
 
     const categoryBreakdown = buildCategoryBreakdown(expense)
@@ -141,7 +164,8 @@ const getMonthlyReport = async (req, res) => {
       debtToIncomeRatio: profile.debtToIncomeRatio ?? 0,
     };
 
-    const meets_50_30_20_rule = expense.meets50_30_20Rule ?? null;
+    // For zero or missing income, treat 50/30/20 as not applicable in the report
+    const meets_50_30_20_rule = income > 0 ? (expense.meets50_30_20Rule ?? null) : null;
     const housingCostRatio = profile.housingCostRatio ?? 0;
 
     const healthRecordMap = new Map(healthRecordsDesc.map((record) => [monthKey(record.monthYear), record]));
@@ -156,7 +180,7 @@ const getMonthlyReport = async (req, res) => {
       if (!exp) return 0;
       if (Number.isFinite(exp.savingsThisMonth)) return exp.savingsThisMonth;
       const total = exp.totalExpenses ?? 0;
-      if (income > 0) return Math.max(0, income - total);
+      if (income > 0) return income - total;
       return 0;
     };
 
@@ -168,6 +192,13 @@ const getMonthlyReport = async (req, res) => {
         : (expSavings / ((exp?.totalExpenses ?? 0) || 1));
       const normalizedHealthRecord = normalizeHealthRecord(healthRecordMap.get(monthKey(exp.monthYear)));
       const expAssessment = mergeAssessment(computeFinancialHealth(profile, exp), normalizedHealthRecord);
+
+      // Per-category amounts for category timeline charts
+      const categoryAmounts = CATEGORY_DEFINITIONS.reduce((acc, { key, field }) => {
+        acc[key] = exp[field] ?? 0;
+        return acc;
+      }, {});
+
       return {
         monthYear: exp.monthYear,
         totalExpenses: exp.totalExpenses ?? 0,
@@ -179,6 +210,7 @@ const getMonthlyReport = async (req, res) => {
         highestSpendingCategory: exp.highestSpendingCategory || null,
         spendingVsLastMonthPercentage: exp.spendingVsLastMonthPercentage ?? null,
         assessment: expAssessment,
+        categories: categoryAmounts,
       };
     });
 
@@ -201,7 +233,6 @@ const getMonthlyReport = async (req, res) => {
       'overspendingEntertainment',
       'overspendingSubscriptions',
       'lifestyleInflationDetected',
-      'irregularSavingsPattern',
     ];
 
     const flagCounts = flagFields.reduce((acc, field) => {

@@ -82,10 +82,10 @@ export default function Select<T extends string = string>({ options, value, onCh
         aria-expanded={open}
         onClick={toggle}
         onKeyDown={handleKeyDown}
-        className={`w-full bg-slate-100 rounded-md px-4 py-3 text-left text-slate-900 text-sm border-0 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-400 transition`}
+        className={`w-full bg-slate-100 dark:bg-slate-800 rounded-md px-4 py-3 text-left text-slate-900 dark:text-slate-100 text-sm border-0 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 transition`}
       >
-        <span className="block truncate">{selected ? selected.label : <span className="text-slate-500">{placeholder}</span>}</span>
-        <span className={`absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`}>
+        <span className="block truncate">{selected ? selected.label : <span className="text-slate-500 dark:text-slate-400">{placeholder}</span>}</span>
+        <span className={`absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500 dark:text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -93,7 +93,7 @@ export default function Select<T extends string = string>({ options, value, onCh
       </button>
 
       {open && (
-        <div role="listbox" className="absolute z-50 mt-2 w-full overflow-auto max-h-56 rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div role="listbox" className="absolute z-50 mt-2 w-full overflow-auto max-h-56 rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
           {options.map((opt, idx) => (
             <Fragment key={opt.value}>
               <button
@@ -106,12 +106,18 @@ export default function Select<T extends string = string>({ options, value, onCh
                   setOpen(false);
                 }}
                 className={`relative w-full text-left px-4 py-2.5 text-sm first:rounded-t-2xl last:rounded-b-2xl ${
-                  idx === activeIndex ? 'bg-indigo-50' : 'bg-white'
-                } ${value === opt.value ? 'font-semibold text-indigo-700' : 'text-slate-700'} hover:bg-indigo-50`}
+                  idx === activeIndex
+                    ? 'bg-indigo-50 dark:bg-slate-800'
+                    : 'bg-white dark:bg-slate-900'
+                } ${
+                  value === opt.value
+                    ? 'font-semibold text-indigo-700 dark:text-sky-300'
+                    : 'text-slate-700 dark:text-slate-200'
+                } hover:bg-indigo-50 dark:hover:bg-slate-800`}
               >
                 {opt.label}
                 {value === opt.value && (
-                  <span className="absolute inset-y-0 right-3 flex items-center text-indigo-600">
+                  <span className="absolute inset-y-0 right-3 flex items-center text-indigo-600 dark:text-sky-400">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>

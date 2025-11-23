@@ -11,35 +11,90 @@ function computeFinancialHealth(profile, expense) {
   const totalExpenses = expense?.totalExpenses ?? 0;
   const savingsAmount = Number.isFinite(expense?.savingsThisMonth)
     ? expense.savingsThisMonth
-    : Math.max(0, income - totalExpenses);
+    : (income > 0 ? income - totalExpenses : 0);
   const savingsRate = income > 0 ? savingsAmount / income : 0;
 
   const dti = profile?.debtToIncomeRatio ?? 0;
   const housingRatio = profile?.housingCostRatio ?? 0;
   const emergencyFundMonths = profile?.emergencyFundMonths ?? 0;
+  const incomeStability = profile?.incomeStability ?? 'stable';
+  const employmentStatus = profile?.employmentStatus ?? null;
+  const lifeStage = profile?.lifeStage ?? null;
+  const creditScore = Number.isFinite(profile?.creditScore) ? profile.creditScore : null;
+  const hasHealthInsurance = profile?.hasHealthInsurance ?? null;
+  const householdSize = profile?.householdSize ?? 1;
+  const locationType = profile?.locationType ?? null;
 
   const discretionaryRatio = expense?.discretionarySpendingRatio ?? (income > 0 && totalExpenses > 0
     ? (totalExpenses - (expense?.totalEssentialSpending ?? 0)) / totalExpenses
     : 0);
 
-  // Overspending flags based on share of total expenses
+  // Overspending flags based on share of total expenses, contextualized by household size
   const restaurants = expense?.restaurantsCafes ?? 0;
   const entertainment = expense?.entertainmentHobbies ?? 0;
   const subscriptions = expense?.subscriptions ?? 0;
   const share = (v) => (totalExpenses > 0 ? v / totalExpenses : 0);
 
-  const overspendingRestaurants = share(restaurants) > 0.1; // >10%
-  const overspendingEntertainment = share(entertainment) > 0.1; // >10%
-  const overspendingSubscriptions = share(subscriptions) > 0.06; // >6%
+  let restaurantsThreshold = 0.10; // 10%
+  let entertainmentThreshold = 0.10; // 10%
+  let subscriptionsThreshold = 0.06; // 6%
+
+  if (householdSize <= 1) {
+    // Single-person households: lower tolerance for high shares
+    restaurantsThreshold = 0.08;
+    entertainmentThreshold = 0.08;
+  } else if (householdSize >= 4) {
+    // Larger households: slightly higher tolerance
+    restaurantsThreshold = 0.12;
+    entertainmentThreshold = 0.12;
+  }
+
+  const overspendingRestaurants = share(restaurants) > restaurantsThreshold;
+  const overspendingEntertainment = share(entertainment) > entertainmentThreshold;
+  const overspendingSubscriptions = share(subscriptions) > subscriptionsThreshold;
 
   // Other core flags
-  const highDebtBurden = dti > 0.36 || ((profile?.monthlyDebtPayments ?? 0) / (income || 1)) > 0.2;
+  // Life-stage-aware debt thresholds
+  let highDebtThreshold = 0.36;
+  let veryHighDebtThreshold = 0.5;
+  if (lifeStage === 'young_professional') {
+    highDebtThreshold = 0.4;
+    veryHighDebtThreshold = 0.55;
+  } else if (lifeStage === 'retiree' || lifeStage === 'empty_nesters') {
+    highDebtThreshold = 0.3;
+    veryHighDebtThreshold = 0.4;
+  }
+
+  const highDebtBurden = dti > highDebtThreshold
+    || ((profile?.monthlyDebtPayments ?? 0) / (income || 1)) > 0.2;
+
   const insufficientSavings = savingsRate < 0.1;
-  const housingCostTooHigh = housingRatio > 0.3;
-  const needsEmergencyFund = emergencyFundMonths < 3;
+  // Location-aware housing cost threshold
+  let housingModerateThreshold = 0.3;
+  let housingHighThreshold = 0.4;
+  if (locationType === 'urban') {
+    housingModerateThreshold = 0.35;
+    housingHighThreshold = 0.45;
+  } else if (locationType === 'rural') {
+    housingModerateThreshold = 0.25;
+    housingHighThreshold = 0.35;
+  }
+
+  const housingCostTooHigh = housingRatio > housingModerateThreshold;
+
+  // Dynamic emergency fund threshold based on income stability and life stage
+  let targetEmergencyFundMonths = 3;
+  if (incomeStability === 'variable' || incomeStability === 'seasonal' || employmentStatus === 'self_employed') {
+    targetEmergencyFundMonths = 6;
+  }
+  if (lifeStage === 'retiree') {
+    targetEmergencyFundMonths = Math.max(targetEmergencyFundMonths, 6);
+  }
+
+  const needsEmergencyFund = emergencyFundMonths < targetEmergencyFundMonths;
 
   // Optional/derived flags
-  const hasAdequateEmergencyFund = emergencyFundMonths >= 3;
+  const hasAdequateEmergencyFund = emergencyFundMonths >= targetEmergencyFundMonths;
   const healthySavingsRate = savingsRate >= 0.2;
   const controlledDiscretionarySpending = discretionaryRatio <= 0.3;
   const lowDebtBurden = dti < 0.2;
@@ -49,6 +104,13 @@ function computeFinancialHealth(profile, expense) {
   const lifestyleInflationDetected = typeof spendingVsLast === 'number' && spendingVsLast > 10; // >10% MoM
   const irregularSavingsPattern = false; // requires historical data; keep false for now
 
+  // Credit score related flags
+  const poorCreditScore = creditScore !== null && creditScore < 670;
+  const excellentCreditScore = creditScore !== null && creditScore >= 740;
+
+  // Health insurance risk flag
+  const noHealthInsuranceRisk = hasHealthInsurance === false;
+
   // Score computation
   let score = 100;
   // Savings rate
@@ -56,8 +118,8 @@ function computeFinancialHealth(profile, expense) {
   else if (savingsRate < 0.1) score -= 20;
   else if (savingsRate < 0.2) score -= 10; else score += 5;
   // Debt burden (DTI)
-  if (dti > 0.5) score -= 25;
-  else if (dti > 0.36) score -= 15;
+  if (dti > veryHighDebtThreshold) score -= 25;
+  else if (dti > highDebtThreshold) score -= 15;
   else if (dti < 0.2) score += 5;
   // Housing
   if (housingRatio > 0.4) score -= 20;
@@ -65,12 +127,20 @@ function computeFinancialHealth(profile, expense) {
   else if (housingRatio < 0.2) score += 5;
   // Emergency fund
   if (emergencyFundMonths < 1) score -= 20;
-  else if (emergencyFundMonths < 3) score -= 10;
-  else if (emergencyFundMonths >= 6) score += 5;
+  else if (emergencyFundMonths < targetEmergencyFundMonths) score -= 10;
+  else if (emergencyFundMonths >= targetEmergencyFundMonths + 3) score += 5;
   // Overspending categories
   if (overspendingRestaurants) score -= 5;
   if (overspendingEntertainment) score -= 5;
   if (overspendingSubscriptions) score -= 5;
+
+  // Credit score impact
+  if (creditScore !== null) {
+    if (creditScore < 580) score -= 15;
+    else if (creditScore < 670) score -= 5;
+    else if (creditScore >= 800) score += 10;
+    else if (creditScore >= 740) score += 5;
+  }
 
   // Clamp 0..100
   score = Math.max(0, Math.min(100, Math.round(score)));
@@ -88,6 +158,10 @@ function computeFinancialHealth(profile, expense) {
   const needsOptimization = financialStressLevel >= 3;
   const optimizationUrgency = financialStressLevel;
 
+  const targetMonthlySavings = profile?.savingsGoalMonthly ?? 0;
+  const meetingSavingsGoal = targetMonthlySavings > 0 && savingsAmount >= targetMonthlySavings * 0.9;
+  const notMeetingSavingsGoal = targetMonthlySavings > 0 && savingsAmount < targetMonthlySavings * 0.9;
+
   const problemAreas = [];
   if (insufficientSavings) problemAreas.push('Insufficient savings rate');
   if (highDebtBurden) problemAreas.push('High debt burden');
@@ -96,7 +170,10 @@ function computeFinancialHealth(profile, expense) {
   if (overspendingEntertainment) problemAreas.push('Overspending: Entertainment');
   if (overspendingSubscriptions) problemAreas.push('Overspending: Subscriptions');
   if (needsEmergencyFund) problemAreas.push('Needs emergency fund');
-  if (lifestyleInflationDetected) problemAreas.push('Lifestyle inflation detected');
+  if (lifestyleInflationDetected) problemAreas.push('Spending spike vs last month');
+  if (poorCreditScore) problemAreas.push('Low credit score');
+  if (noHealthInsuranceRisk) problemAreas.push('No health insurance coverage');
+  if (notMeetingSavingsGoal) problemAreas.push('Not meeting savings goal');
 
   const overallFinancialHealth = score >= 80
     ? 'excellent'
@@ -122,6 +199,11 @@ function computeFinancialHealth(profile, expense) {
     housingCostTooHigh,
     lifestyleInflationDetected,
     irregularSavingsPattern,
+    poorCreditScore,
+    excellentCreditScore,
+    noHealthInsuranceRisk,
+    meetingSavingsGoal,
+    notMeetingSavingsGoal,
 
     hasAdequateEmergencyFund,
     healthySavingsRate,

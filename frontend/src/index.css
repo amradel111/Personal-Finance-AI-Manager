@@ -12,6 +12,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Light mode: peachy cream gradient background */
+body:not(.dark) {
+  background: linear-gradient(135deg, #fff5f0 0%, #ffe8db 100%);
+  min-height: 100vh;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

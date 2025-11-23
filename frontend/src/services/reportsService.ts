@@ -107,6 +107,11 @@ export interface AssessmentPayload {
   overspendingSubscriptions: boolean | null;
   lifestyleInflationDetected: boolean | null;
   irregularSavingsPattern: boolean | null;
+  poorCreditScore?: boolean | null;
+  excellentCreditScore?: boolean | null;
+  noHealthInsuranceRisk?: boolean | null;
+  meetingSavingsGoal?: boolean | null;
+  notMeetingSavingsGoal?: boolean | null;
   // Positive indicators
   hasAdequateEmergencyFund: boolean | null;
   healthySavingsRate: boolean | null;
@@ -131,6 +136,7 @@ export interface TrendMonth {
   highestSpendingCategory: string | null;
   spendingVsLastMonthPercentage: number | null;
   assessment: AssessmentPayload;
+  categories: Record<string, number>;
 }
 
 export interface TrendStats {

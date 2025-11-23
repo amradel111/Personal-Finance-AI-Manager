@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import Header from '../../components/Header';
 import { checkProfileStatus } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
@@ -28,6 +29,10 @@ const monthFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'long',
   year: 'numeric',
 });
+
+// Central place to define the target savings rate (e.g. 0.2 == 20%).
+// Used across dashboard widgets so the UI stays consistent if the goal changes.
+const SAVINGS_GOAL_RATE = 0.2;
 
 const formatCurrency = (value: number | null | undefined) => {
   if (value === null || value === undefined || Number.isNaN(value)) return '—';
@@ -62,10 +67,10 @@ const toneClassMap: Record<NonNullable<QuickStat['tone']>, string> = {
 // Header is now shared via ../../components/Header
 
 const StatCard = ({ title, value, subtext }: { title: string; value: string; subtext?: string }) => (
-  <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-    <p className="text-sm font-medium text-slate-300">{title}</p>
-    <p className="mt-3 text-2xl sm:text-3xl font-semibold text-white">{value}</p>
-    {subtext && <p className="mt-1 text-xs text-slate-400">{subtext}</p>}
+  <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+    <p className="text-sm font-medium text-coral-700 dark:text-slate-300">{title}</p>
+    <p className="mt-3 text-2xl sm:text-3xl font-semibold text-coral-900 dark:text-white">{value}</p>
+    {subtext && <p className="mt-1 text-xs text-coral-600 dark:text-slate-400">{subtext}</p>}
   </div>
 );
 
@@ -86,22 +91,56 @@ const SummaryGrid = ({ summary }: { summary: DashboardSummary }) => (
   </div>
 );
 
-const TopCategoriesList = ({ categories }: { categories: DashboardTopCategory[] }) => {
+const TopCategoriesList = ({ categories, totalExpenses }: { categories: DashboardTopCategory[]; totalExpenses: number | null }) => {
   if (!categories.length) return null;
+
+  const safeTotal = totalExpenses && totalExpenses > 0 ? totalExpenses : null;
+  const withShare = categories.map((c) => ({
+    ...c,
+    share: safeTotal ? c.amount / safeTotal : null,
+  }));
+
+  const topTotal = withShare.reduce((sum, c) => sum + c.amount, 0);
+  const topShare = safeTotal ? topTotal / safeTotal : null;
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Top Spending Categories</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">LATEST MONTH</span>
+    <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 h-full flex flex-col dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-coral-900 dark:text-white">Top Spending Categories</h3>
+        <span className="text-xs font-semibold uppercase tracking-wide text-coral-600 dark:text-slate-400">LATEST MONTH</span>
       </div>
-      <ul className="mt-4 space-y-3">
-        {categories.map((item) => (
-          <li key={item.key} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-4 py-3">
-            <span className="text-sm font-medium text-slate-100">{item.label}</span>
-            <span className="text-sm font-semibold text-white">{formatCurrency(item.amount)}</span>
+      <ul className="space-y-3 flex-1">
+        {withShare.map((item) => (
+          <li
+            key={item.key}
+            className="rounded-xl border border-coral-200 bg-peach-50 px-4 py-2.5 hover:bg-peach-100 transition-colors dark:border-white/5 dark:bg-white/5 dark:hover:bg-white/10"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-coral-900 truncate mr-3 dark:text-slate-100">{item.label}</span>
+              <span className="text-sm font-semibold text-coral-900 whitespace-nowrap dark:text-white">{formatCurrency(item.amount)}</span>
+            </div>
+            {item.share !== null && (
+              <div className="mt-1 flex items-center justify-between text-[11px] text-coral-600 dark:text-slate-400">
+                <span>{formatPercent(item.share)} of monthly spending</span>
+                <div className="flex-1 ml-3 h-1.5 rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/5">
+                  <div
+                    className="h-1.5 rounded-full bg-gradient-to-r from-teal-500 to-emerald-500"
+                    style={{ width: `${Math.max(4, Math.min(100, Math.round(item.share * 100)))}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </li>
         ))}
       </ul>
+      {topShare !== null && (
+        <div className="pt-3 mt-1 border-t border-coral-200 text-[11px] text-coral-600 flex items-center justify-between dark:border-white/5 dark:text-slate-400">
+          <span>
+            Top {categories.length} categories account for{' '}
+            <span className="font-semibold text-coral-900 dark:text-slate-200">{formatPercent(topShare)}</span> of your spending.
+          </span>
+        </div>
+      )}
     </div>
   );
 };
@@ -109,14 +148,17 @@ const TopCategoriesList = ({ categories }: { categories: DashboardTopCategory[] 
 const QuickStatsSection = ({ stats }: { stats: QuickStat[] }) => {
   if (!stats.length) return null;
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-      <h3 className="text-lg font-semibold text-white mb-4">Quick Insights</h3>
+    <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+      <h3 className="text-lg font-semibold text-coral-900 mb-4 dark:text-white">Quick Insights</h3>
       <div className="grid gap-3 grid-cols-2">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl bg-white/5 border border-white/5 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{stat.label}</p>
-            <p className={`mt-2 text-xl font-semibold ${stat.tone ? toneClassMap[stat.tone] : 'text-white'}`}>{stat.value}</p>
-            {stat.detail && <p className="mt-1 text-xs text-slate-300">{stat.detail}</p>}
+          <div
+            key={stat.label}
+            className="rounded-xl bg-peach-50 border border-coral-200 px-4 py-4 dark:bg-peach-50/5 dark:border-white/5"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">{stat.label}</p>
+            <p className={`mt-2 text-xl font-semibold ${stat.tone ? toneClassMap[stat.tone] : 'text-coral-900 dark:text-white'}`}>{stat.value}</p>
+            {stat.detail && <p className="mt-1 text-xs text-coral-700 dark:text-slate-300">{stat.detail}</p>}
           </div>
         ))}
       </div>
@@ -126,24 +168,37 @@ const QuickStatsSection = ({ stats }: { stats: QuickStat[] }) => {
 
 const SavingsProgressCard = ({ rate }: { rate: number | null }) => {
   if (rate === null || Number.isNaN(rate)) return null;
-  const pct = Math.max(0, Math.min(100, Math.round(rate * 100)));
+
+  // Actual savings rate as a percentage (e.g. 0.26 -> 26)
+  const savedPct = Math.max(0, Math.round(rate * 100));
+
+  // Progress toward the configured goal. 100% on this bar means "goal reached".
+  // Anything above the goal keeps the bar visually full, but the label still
+  // shows how far above the target you are.
+  const goalProgressPct = Math.max(0, Math.min(100, Math.round((rate / SAVINGS_GOAL_RATE) * 100)));
+
+  const goalPct = Math.round(SAVINGS_GOAL_RATE * 100);
+  const overUnder = savedPct - goalPct;
+  const overUnderLabel = overUnder > 0 ? ` (+${overUnder}% above goal)` : overUnder < 0 ? ` (${Math.abs(overUnder)}% below goal)` : '';
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)] flex flex-col">
+    <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 flex flex-col dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-white">Savings Progress</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{pct}% SAVED</span>
+        <h3 className="text-lg font-semibold text-coral-900 dark:text-white">Savings Progress</h3>
+        <span className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">{savedPct}% SAVED</span>
       </div>
       <div className="flex-1 flex flex-col justify-center">
-        <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className="h-3 w-full rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/10">
           <div
-            className={`h-3 rounded-full transition-all duration-500 ${pct >= 20 ? 'bg-emerald-500' : pct >= 10 ? 'bg-amber-500' : 'bg-rose-500'}`}
-            style={{ width: `${pct}%` }}
+            className={`h-3 rounded-full transition-all duration-500 ${rate >= SAVINGS_GOAL_RATE ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-rose-500 to-red-500'}`}
+            style={{ width: `${goalProgressPct}%` }}
           />
         </div>
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-slate-400">Goal: 20%+ monthly savings</p>
-          <p className={`text-xs font-semibold ${pct >= 20 ? 'text-emerald-400' : pct >= 10 ? 'text-amber-400' : 'text-rose-400'}`}>
-            {pct >= 20 ? 'Excellent!' : pct >= 10 ? 'Good Progress' : 'Keep Going'}
+          <p className="text-xs text-coral-600 dark:text-slate-400">Goal: {goalPct}%+ monthly savings</p>
+          <p className={`text-xs font-semibold ${rate >= SAVINGS_GOAL_RATE ? 'text-emerald-600' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'text-amber-600' : 'text-rose-600'}`}>
+            {rate >= SAVINGS_GOAL_RATE ? 'Excellent!' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'Good Progress' : 'Keep Going'}
+            {overUnderLabel}
           </p>
         </div>
       </div>
@@ -152,6 +207,8 @@ const SavingsProgressCard = ({ rate }: { rate: number | null }) => {
 };
 
 const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | null }) => {
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
   if (!recent || !recent.hasExpensesData || !recent.expenses.length) {
     return null;
   }
@@ -161,20 +218,20 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
   // Show message if insufficient data for meaningful trend
   if (last.length < 3) {
     return (
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)] flex flex-col">
+      <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 flex flex-col dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-white">Spending Trend</h3>
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">INSUFFICIENT DATA</span>
+          <h3 className="text-lg font-semibold text-coral-900 dark:text-white">Spending Trend</h3>
+          <span className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">INSUFFICIENT DATA</span>
         </div>
         <div className="flex-1 flex items-center justify-center py-8">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-500/10 border-2 border-indigo-500/30 mb-4">
-              <svg className="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-teal-500/10 border-2 border-teal-500/30 mb-4">
+              <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <p className="text-sm font-semibold text-white mb-1">Add More Months</p>
-            <p className="text-xs text-slate-400 max-w-xs">
+            <p className="text-sm font-semibold text-coral-900 mb-1 dark:text-white">Add More Months</p>
+            <p className="text-xs text-coral-700 max-w-xs dark:text-slate-400">
               Track at least 3 months of expenses to see your spending trends and patterns
             </p>
           </div>
@@ -186,64 +243,95 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
   const values = last.map((e) => e.totalExpenses);
   const max = Math.max(...values, 1);
   const min = Math.min(...values);
-  const range = max - min;
   const avgSpending = values.reduce((sum, v) => sum + v, 0) / values.length;
   
+  const chartData = last.map(e => ({
+    name: new Date(e.monthYear).toLocaleDateString('en-US', { month: 'short' }),
+    value: e.totalExpenses,
+    fullDate: new Date(e.monthYear).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    isHighest: e.totalExpenses === max,
+    isLowest: e.totalExpenses === min,
+    isAboveAvg: e.totalExpenses > avgSpending
+  }));
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+    <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-white">Spending Trend</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">LAST {last.length} MONTHS</span>
+        <h3 className="text-lg font-semibold text-coral-900 dark:text-white">Spending Trend</h3>
+        <span className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">LAST {last.length} MONTHS</span>
       </div>
       <div className="space-y-4">
-        {/* Chart Container - Fixed height for proper percentage calculations */}
-        <div className="relative h-40">
-          {/* Average line */}
-          {range > 0 && (
-            <div 
-              className="absolute left-0 right-0 border-t border-dashed border-amber-400/40 z-10"
-              style={{ bottom: `${((avgSpending - min) / range) * 100}%` }}
+        <div className="h-48 w-full -ml-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart 
+              data={chartData} 
+              margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
+              onMouseMove={(state: any) => {
+                if (state.isTooltipActive) {
+                  setActiveIndex(state.activeTooltipIndex);
+                } else {
+                  setActiveIndex(null);
+                }
+              }}
+              onMouseLeave={() => setActiveIndex(null)}
             >
-              <span className="absolute -top-2 -right-1 text-[9px] font-semibold text-amber-400 bg-slate-900/80 px-1.5 py-0.5 rounded">
-                AVG
-              </span>
-            </div>
-          )}
-          
-          {/* Chart bars */}
-          <div className="absolute inset-0 flex items-end justify-between gap-2">
-            {last.map((e) => {
-              // Calculate height as pixels for better control
-              const normalizedHeight = range > 0 ? ((e.totalExpenses - min) / range) : 0.5;
-              const heightPx = Math.max(32, Math.round(normalizedHeight * 140 + 20));
-              const isHighest = e.totalExpenses === max;
-              const isLowest = e.totalExpenses === min;
-              const isAboveAvg = e.totalExpenses > avgSpending;
-              
-              return (
-                <div key={e.id} className="flex-1 flex flex-col items-center justify-end gap-2 group">
-                  <div 
-                    className={`w-full rounded-t-lg transition-all duration-300 border-t-2 relative ${
-                      isHighest ? 'bg-rose-400/80 border-rose-300' : 
-                      isLowest ? 'bg-emerald-400/80 border-emerald-300' :
-                      isAboveAvg ? 'bg-amber-400/70 border-amber-300' :
-                      'bg-indigo-400/70 border-indigo-300'
-                    } hover:brightness-110 cursor-pointer`}
-                    style={{ height: `${heightPx}px` }}
-                    title={`${new Date(e.monthYear).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}: ${formatCurrency(e.totalExpenses)}`}
-                  >
-                    {/* Tooltip on hover */}
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap pointer-events-none z-20">
-                      {formatCurrency(e.totalExpenses)}
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-medium text-center leading-tight">
-                    {new Date(e.monthYear).toLocaleDateString('en-US', { month: 'short' })}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+              <XAxis 
+                dataKey="name" 
+                stroke="#94a3b8" 
+                tickLine={false} 
+                axisLine={false} 
+                tick={{ fontSize: 10 }}
+              />
+              <YAxis
+                stroke="#94a3b8"
+                tickLine={false}
+                axisLine={false}
+                width={64}
+                tick={{ fontSize: 10 }}
+                tickFormatter={(value: number) => currencyFormatter.format(value).replace('$', '$')}
+              />
+              <Tooltip 
+                cursor={false}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="rounded-lg border border-white/10 bg-slate-900/95 p-2 shadow-xl backdrop-blur-md">
+                        <p className="text-xs font-medium text-slate-400 mb-1">{data.fullDate}</p>
+                        <p className="text-sm font-bold text-white">{formatCurrency(data.value)}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <ReferenceLine y={avgSpending} stroke="#fbbf24" strokeDasharray="3 3" strokeOpacity={0.5} />
+              <Bar dataKey="value" radius={[4, 4, 0, 0]} animationDuration={1000}>
+                {chartData.map((entry, index) => {
+                  let color = '#818cf8'; // indigo-400 default
+                  if (entry.isHighest) color = '#fb7185'; // rose-400
+                  else if (entry.isLowest) color = '#34d399'; // emerald-400
+                  else if (entry.isAboveAvg) color = '#fbbf24'; // amber-400
+
+                  return (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={color}
+                      style={{
+                        filter: activeIndex === index 
+                          ? `brightness(1.2) drop-shadow(0 0 8px ${color}80)` 
+                          : activeIndex !== null 
+                          ? 'opacity(0.5)' 
+                          : 'none',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer'
+                      }}
+                    />
+                  );
+                })}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
         
         {/* Stats below chart */}
@@ -266,90 +354,32 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
   );
 };
 
-const RecentExpensesList = ({ recent }: { recent: RecentExpensesResponse }) => {
-  if (!recent.hasExpensesData || !recent.expenses.length) return null;
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-lg font-semibold text-white">Recent Months</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">LAST {recent.expenses.length} ENTRIES</span>
-      </div>
-      <div className="space-y-3">
-        {recent.expenses.map((expense) => (
-          <div key={expense.id} className="rounded-xl border border-white/10 bg-slate-900/50 px-5 py-4 hover:bg-slate-900/60 transition-colors">
-            {/* Header - Centered Month and Total */}
-            <div className="text-center mb-4">
-              <h4 className="text-lg font-bold text-white mb-1.5">{formatMonth(expense.monthYear)}</h4>
-              <p className="text-sm text-slate-400">
-                Total Expenses: <span className="font-semibold text-white">{formatCurrency(expense.totalExpenses)}</span>
-              </p>
-            </div>
-            
-            {/* Badges - Centered */}
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="rounded-full bg-indigo-500/20 border border-indigo-400/30 px-4 py-1.5 text-xs font-bold text-indigo-200">
-                Savings: {formatCurrency(expense.savingsThisMonth)}
-              </span>
-              <span
-                className={`rounded-full px-4 py-1.5 text-xs font-bold border ${
-                  expense.meets_50_30_20_rule 
-                    ? 'bg-emerald-500/20 border-emerald-400/30 text-emerald-200' 
-                    : 'bg-amber-500/20 border-amber-400/30 text-amber-200'
-                }`}
-              >
-                {expense.meets_50_30_20_rule ? 'Balanced' : 'Adjust Mix'}
-              </span>
-            </div>
-            
-            {/* Category Pills - Centered */}
-            {expense.topCategories.length > 0 && (
-              <div className="pt-3 border-t border-white/5">
-                <div className="flex flex-wrap justify-center gap-2">
-                  {expense.topCategories.map((cat) => (
-                    <span 
-                      key={`${expense.id}-${cat.key}`} 
-                      className="inline-flex items-center rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300"
-                    >
-                      <span className="text-slate-400">{cat.label}:</span>
-                      <span className="ml-1.5 font-semibold text-white">{formatCurrency(cat.amount)}</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const LoadingSkeleton = () => (
   <div className="space-y-6 animate-pulse">
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div key={index} className="h-32 rounded-2xl bg-white/10" />
+        <div key={index} className="h-32 rounded-2xl bg-peach-50/10" />
       ))}
     </div>
     <div className="grid gap-6 lg:grid-cols-2">
-      <div className="h-56 rounded-2xl bg-white/10" />
-      <div className="h-56 rounded-2xl bg-white/10" />
+      <div className="h-56 rounded-2xl bg-peach-50/10" />
+      <div className="h-56 rounded-2xl bg-peach-50/10" />
     </div>
-    <div className="h-64 rounded-2xl bg-white/10" />
+    <div className="h-64 rounded-2xl bg-peach-50/10" />
   </div>
 );
 
 const EmptyState = ({ onAddExpense, message }: { onAddExpense: () => void; message?: string }) => (
-  <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-6 py-12 text-center">
-    <h3 className="text-2xl font-semibold text-white">Add your first expenses</h3>
-    <p className="mt-3 text-sm text-slate-300">
+  <div className="rounded-2xl border border-dashed border-coral-300 bg-peach-50/50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900/60">
+    <h3 className="text-2xl font-semibold text-coral-900 dark:text-white">Add your first expenses</h3>
+    <p className="mt-3 text-sm text-warm-700 dark:text-slate-300">
       {message || 'We will populate your dashboard once you record your first month of spending.'}
     </p>
     <div className="mt-6 flex justify-center">
       <button
         type="button"
         onClick={onAddExpense}
-        className="inline-flex items-center rounded-full bg-white text-slate-900 px-6 py-3 text-sm font-semibold transition hover:bg-slate-100"
+        className="inline-flex items-center rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-3 text-sm font-semibold shadow-lg shadow-emerald-500/25 transition hover:from-emerald-600 hover:to-teal-600 dark:bg-peach-50 dark:text-slate-900 dark:hover:bg-slate-100"
       >
         Add Expenses
       </button>
@@ -359,16 +389,16 @@ const EmptyState = ({ onAddExpense, message }: { onAddExpense: () => void; messa
 
 const ProfileOverlay = ({ onSetup }: { onSetup: () => void }) => (
   <div className="absolute inset-0 z-20 backdrop-blur-sm bg-black/60 flex items-center justify-center px-4">
-    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xl p-8 text-center">
-      <h2 className="text-2xl font-semibold text-slate-900">Set up your profile for a tailored experience</h2>
-      <p className="text-slate-600 mt-2 text-sm">
+    <div className="bg-peach-50 rounded-2xl shadow-2xl border border-coral-200 w-full max-w-xl p-8 text-center">
+      <h2 className="text-2xl font-semibold text-coral-900">Set up your profile for a tailored experience</h2>
+      <p className="text-warm-700 mt-2 text-sm">
         We use your household and income details to personalize insights and recommendations.
       </p>
       <div className="mt-6 flex items-center justify-center gap-3">
         <button
           type="button"
           onClick={onSetup}
-          className="rounded-full border border-slate-900 bg-slate-900 text-white text-xs font-bold px-8 py-3 uppercase tracking-wider transition-transform hover:scale-95 active:scale-90"
+          className="rounded-full border-2 border-emerald-500 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold px-8 py-3 uppercase tracking-wider shadow-lg shadow-emerald-500/30 transition-transform hover:scale-95 active:scale-90"
         >
           Set up profile
         </button>
@@ -509,8 +539,8 @@ const Dashboard = () => {
   const showEmptyState = summary && summary.hasExpensesData === false;
 
   return (
-    <div className="relative min-h-screen bg-slate-950 text-slate-100">
-      <div className="fixed inset-0 -z-10 pointer-events-none bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="relative min-h-screen bg-peach-100 text-coral-900 dark:bg-slate-950 dark:text-slate-100">
+      <div className="fixed inset-0 -z-10 pointer-events-none bg-gradient-to-br from-peach-200 via-peach-100 to-peach-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
@@ -536,7 +566,7 @@ const Dashboard = () => {
                 if (hasProfile === true) void loadDashboardData();
               }}
               disabled={isLoadingData || hasProfile !== true}
-              className="inline-flex items-center rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center rounded-lg border border-coral-200 bg-white px-3 py-1.5 text-xs font-semibold text-coral-800 hover:bg-peach-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-white/10 dark:bg-peach-50/5 dark:text-white dark:hover:bg-peach-50/10"
             >
               {isLoadingData ? 'Refreshing…' : 'Refresh Data'}
             </button>
@@ -557,14 +587,14 @@ const Dashboard = () => {
                 <div className="space-y-6">
                   <SummaryGrid summary={summary} />
                   <div className="grid gap-6 lg:grid-cols-2 items-stretch">
-                    <TopCategoriesList categories={summary.topSpendingCategories} />
+                    <TopCategoriesList categories={summary.topSpendingCategories} totalExpenses={summary.totalExpenses} />
                     <QuickStatsSection stats={quickStats} />
                   </div>
                   <div className="grid gap-6 lg:grid-cols-2 items-stretch">
                     <SavingsProgressCard rate={summary.savingsRate} />
                     <SpendingTrendMiniChart recent={recent} />
                   </div>
-                  {recent && <RecentExpensesList recent={recent} />}
+                  {/* Recent months view removed */}
                 </div>
               )}
 
@@ -585,3 +615,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+
