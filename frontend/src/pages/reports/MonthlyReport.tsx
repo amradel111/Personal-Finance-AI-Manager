@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+// Updated: 2025-11-23 20:38 - Fixed pie chart label styling
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Header from '../../components/Header';
 import { getMonthlyReport, getReportHistory, type MonthlyReportResponse, type HistoryResponse, type CategoryItem } from '../../services/reportsService';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +28,7 @@ const formatMonth = (iso: string | null | undefined) => {
 };
 
 const COLORS = ['#60a5fa', '#f97316', '#22c55e', '#a78bfa', '#f43f5e', '#06b6d4', '#84cc16', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#14b8a6', '#eab308', '#d97706'];
-const LABEL_MIN_PERCENT = 0.05;
+
 
 const ScoreBadge = ({ score }: { score: number | undefined }) => {
   if (score === undefined || score === null) return null;
@@ -56,6 +57,7 @@ const MonthlyReport = () => {
   const [report, setReport] = useState<MonthlyReportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasAnimatedRef = useRef(false);
   const navigate = useNavigate();
 
   const loadHistory = useCallback(async () => {
@@ -114,6 +116,7 @@ const MonthlyReport = () => {
   };
 
   const categoryData: CategoryItem[] = useMemo(() => (report?.hasData && report.report ? report.report.categoryBreakdown : []), [report]);
+
 
   const compareData = useMemo(() => {
     if (!report?.hasData || !report.report) return [] as { name: string; value: number }[];
@@ -180,35 +183,37 @@ const MonthlyReport = () => {
     const { cx, cy, midAngle, innerRadius, outerRadius, percent, index } = props;
     if (!categoryData[index]) return null;
     const RADIAN = Math.PI / 180;
-    if (!percent || percent < LABEL_MIN_PERCENT) return null;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    // Increased threshold to 8% to avoid cramping
+    if (!percent || percent < 0.08) return null;
+
+    // Adjust positioning for better symmetry (0.55 instead of 0.6)
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     const pctValue = percent * 100;
     const pct = pctValue >= 10 ? pctValue.toFixed(0) : pctValue.toFixed(1);
-    const isActive = activeIndex === index;
+
     return (
       <text
         x={x}
         y={y}
-        fill="#ffffff"
+        fill="white"
         textAnchor="middle"
         dominantBaseline="central"
-        className="text-sm font-bold"
-        style={{ 
-          textShadow: '0 2px 4px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.7)',
+        style={{
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: '15px',
+          fontWeight: '600',
+          textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.8)',
           pointerEvents: 'none',
-          fontSize: isActive ? '16px' : '14px',
-          fontWeight: isActive ? 'bold' : '600',
-          transition: 'all 0.3s ease',
+          userSelect: 'none',
           opacity: 1,
-          mixBlendMode: 'normal',
         }}
       >
         {`${pct}%`}
       </text>
     );
-  }, [categoryData, activeIndex]);
+  }, [categoryData]);
 
   return (
     <div className="relative min-h-screen bg-cream-200 text-warmgray-900 dark:bg-slate-950 dark:text-slate-100">
@@ -306,7 +311,7 @@ const MonthlyReport = () => {
 
               <div className="grid gap-6 lg:grid-cols-2 items-stretch">
                 <SectionCard title="Spending by Category">
-                  <div 
+                  <div
                     className="flex items-center justify-center h-[350px] py-6"
                     onMouseLeave={() => {
                       setActiveIndex(null);
@@ -337,17 +342,19 @@ const MonthlyReport = () => {
                           animationBegin={0}
                           animationDuration={800}
                           animationEasing="ease-out"
+                          isAnimationActive={!hasAnimatedRef.current}
+                          onAnimationEnd={() => { hasAnimatedRef.current = true; }}
                         >
                           {categoryData.map((_, i) => (
-                            <Cell 
-                              key={`cell-${i}`} 
-                              fill={COLORS[i % COLORS.length]} 
-                              stroke={activeIndex === i ? 'rgba(255, 255, 255, 0.5)' : 'rgba(15, 23, 42, 0.8)'} 
+                            <Cell
+                              key={`cell-${i}`}
+                              fill={COLORS[i % COLORS.length]}
+                              stroke={activeIndex === i ? 'rgba(255, 255, 255, 0.5)' : 'rgba(15, 23, 42, 0.8)'}
                               strokeWidth={activeIndex === i ? 3 : 2}
                               opacity={activeIndex === null ? 1 : activeIndex === i ? 1 : 0.4}
                               style={{
-                                filter: activeIndex === i 
-                                  ? 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.6))' 
+                                filter: activeIndex === i
+                                  ? 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.6))'
                                   : 'none',
                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                 cursor: 'pointer',
@@ -363,7 +370,7 @@ const MonthlyReport = () => {
                                 <div className="rounded-lg border border-white/20 bg-slate-900/95 p-3 shadow-2xl backdrop-blur-md animate-in fade-in zoom-in duration-200">
                                   <p className="text-sm font-semibold text-white">{data.label}</p>
                                   <p className="text-sm text-slate-300 mt-1">
-                                    {formatCurrency(data.amount)} 
+                                    {formatCurrency(data.amount)}
                                     <span className="ml-2 text-xs text-slate-400">({percentFormatter.format(data.percent)})</span>
                                   </p>
                                 </div>
@@ -377,8 +384,8 @@ const MonthlyReport = () => {
                   </div>
                   <div className="mt-4 space-y-3 max-h-[280px] overflow-y-auto overflow-x-hidden custom-scrollbar p-2">
                     {categoryData.map((c, idx) => (
-                      <div 
-                        key={c.key} 
+                      <div
+                        key={c.key}
                         className="flex items-center gap-3 rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 hover:bg-white/10 transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-lg"
                         onMouseEnter={() => {
                           setActiveIndex(idx);
@@ -393,8 +400,8 @@ const MonthlyReport = () => {
                           backgroundColor: activeIndex === idx ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
                         }}
                       >
-                        <div 
-                          className="w-3 h-3 rounded-full flex-shrink-0" 
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: COLORS[idx % COLORS.length] }}
                         />
                         <span className="text-sm text-warmgray-700 dark:text-slate-200 flex-1">{c.label}</span>
@@ -499,8 +506,8 @@ const MonthlyReport = () => {
                 <SectionCard title="Income vs Expenses">
                   <div className="h-72 py-2">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart 
-                        data={compareData} 
+                      <BarChart
+                        data={compareData}
                         margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
                         onMouseMove={(state: any) => {
                           if (state.isTooltipActive) {
@@ -513,7 +520,7 @@ const MonthlyReport = () => {
                       >
                         <XAxis dataKey="name" stroke="#94a3b8" tickLine={false} axisLine={false} />
                         <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
-                        <Tooltip 
+                        <Tooltip
                           cursor={false}
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
@@ -536,15 +543,15 @@ const MonthlyReport = () => {
                         />
                         <Bar dataKey="value" radius={[6, 6, 0, 0]} animationDuration={1000}>
                           {compareData.map((_, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
+                            <Cell
+                              key={`cell-${index}`}
                               fill="#60a5fa"
                               style={{
-                                filter: activeIncomeIndex === index 
-                                  ? 'brightness(1.2) drop-shadow(0 0 8px rgba(96, 165, 250, 0.5))' 
-                                  : activeIncomeIndex !== null 
-                                  ? 'opacity(0.5)' 
-                                  : 'none',
+                                filter: activeIncomeIndex === index
+                                  ? 'brightness(1.2) drop-shadow(0 0 8px rgba(96, 165, 250, 0.5))'
+                                  : activeIncomeIndex !== null
+                                    ? 'opacity(0.5)'
+                                    : 'none',
                                 transition: 'all 0.3s ease',
                                 cursor: 'pointer'
                               }}
@@ -569,8 +576,8 @@ const MonthlyReport = () => {
                 >
                   <div className="h-72 py-2">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart 
-                        data={esVsDsData} 
+                      <BarChart
+                        data={esVsDsData}
                         margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
                         onMouseMove={(state: any) => {
                           if (state.isTooltipActive) {
@@ -583,7 +590,7 @@ const MonthlyReport = () => {
                       >
                         <XAxis dataKey="name" stroke="#94a3b8" tickLine={false} axisLine={false} />
                         <YAxis stroke="#94a3b8" tickLine={false} axisLine={false} />
-                        <Tooltip 
+                        <Tooltip
                           cursor={false}
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
@@ -606,15 +613,15 @@ const MonthlyReport = () => {
                         />
                         <Bar dataKey="value" radius={[6, 6, 0, 0]} animationDuration={1000}>
                           {esVsDsData.map((_, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
+                            <Cell
+                              key={`cell-${index}`}
                               fill="#22c55e"
                               style={{
-                                filter: activeEssentialIndex === index 
-                                  ? 'brightness(1.2) drop-shadow(0 0 8px rgba(34, 197, 94, 0.5))' 
-                                  : activeEssentialIndex !== null 
-                                  ? 'opacity(0.5)' 
-                                  : 'none',
+                                filter: activeEssentialIndex === index
+                                  ? 'brightness(1.2) drop-shadow(0 0 8px rgba(34, 197, 94, 0.5))'
+                                  : activeEssentialIndex !== null
+                                    ? 'opacity(0.5)'
+                                    : 'none',
                                 transition: 'all 0.3s ease',
                                 cursor: 'pointer'
                               }}
