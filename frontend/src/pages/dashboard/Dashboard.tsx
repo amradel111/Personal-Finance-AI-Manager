@@ -152,7 +152,10 @@ const SavingsProgressCard = ({ rate }: { rate: number | null }) => {
 };
 
 const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | null }) => {
-  if (!recent || !recent.hasExpensesData || !recent.expenses.length) return null;
+  if (!recent || !recent.hasExpensesData || !recent.expenses.length) {
+    return null;
+  }
+  
   const last = recent.expenses.slice(0, 6).reverse();
   
   // Show message if insufficient data for meaningful trend
@@ -187,17 +190,18 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
   const avgSpending = values.reduce((sum, v) => sum + v, 0) / values.length;
   
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)] flex flex-col">
+    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur px-4 py-5 sm:px-6 sm:py-6 shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-white">Spending Trend</h3>
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">LAST {last.length} MONTHS</span>
       </div>
-      <div className="flex-1 flex flex-col justify-end">
-        <div className="flex items-end justify-between gap-2 h-32 relative">
+      <div className="space-y-4">
+        {/* Chart Container - Fixed height for proper percentage calculations */}
+        <div className="relative h-40">
           {/* Average line */}
           {range > 0 && (
             <div 
-              className="absolute left-0 right-0 border-t border-dashed border-amber-400/40"
+              className="absolute left-0 right-0 border-t border-dashed border-amber-400/40 z-10"
               style={{ bottom: `${((avgSpending - min) / range) * 100}%` }}
             >
               <span className="absolute -top-2 -right-1 text-[9px] font-semibold text-amber-400 bg-slate-900/80 px-1.5 py-0.5 rounded">
@@ -206,34 +210,44 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
             </div>
           )}
           
-          {last.map((e) => {
-            // Better height calculation with minimum height for visibility
-            const normalizedHeight = range > 0 ? ((e.totalExpenses - min) / range) : 0.5;
-            const h = Math.max(20, Math.round(normalizedHeight * 85 + 15));
-            const isHighest = e.totalExpenses === max;
-            const isLowest = e.totalExpenses === min;
-            const isAboveAvg = e.totalExpenses > avgSpending;
-            
-            return (
-              <div key={e.id} className="flex-1 flex flex-col items-center gap-2 group relative">
-                <div 
-                  className={`w-full rounded-t-lg transition-all duration-300 border-t-2 ${
-                    isHighest ? 'bg-rose-400/80 border-rose-300' : 
-                    isLowest ? 'bg-emerald-400/80 border-emerald-300' :
-                    isAboveAvg ? 'bg-amber-400/70 border-amber-300' :
-                    'bg-indigo-400/70 border-indigo-300'
-                  } hover:brightness-110 cursor-pointer`}
-                  style={{ height: `${h}%` }}
-                  title={formatCurrency(e.totalExpenses)}
-                />
-                <span className="text-[10px] text-slate-400 font-medium text-center leading-tight">
-                  {new Date(e.monthYear).toLocaleDateString('en-US', { month: 'short' })}
-                </span>
-              </div>
-            );
-          })}
+          {/* Chart bars */}
+          <div className="absolute inset-0 flex items-end justify-between gap-2">
+            {last.map((e) => {
+              // Calculate height as pixels for better control
+              const normalizedHeight = range > 0 ? ((e.totalExpenses - min) / range) : 0.5;
+              const heightPx = Math.max(32, Math.round(normalizedHeight * 140 + 20));
+              const isHighest = e.totalExpenses === max;
+              const isLowest = e.totalExpenses === min;
+              const isAboveAvg = e.totalExpenses > avgSpending;
+              
+              return (
+                <div key={e.id} className="flex-1 flex flex-col items-center justify-end gap-2 group">
+                  <div 
+                    className={`w-full rounded-t-lg transition-all duration-300 border-t-2 relative ${
+                      isHighest ? 'bg-rose-400/80 border-rose-300' : 
+                      isLowest ? 'bg-emerald-400/80 border-emerald-300' :
+                      isAboveAvg ? 'bg-amber-400/70 border-amber-300' :
+                      'bg-indigo-400/70 border-indigo-300'
+                    } hover:brightness-110 cursor-pointer`}
+                    style={{ height: `${heightPx}px` }}
+                    title={`${new Date(e.monthYear).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}: ${formatCurrency(e.totalExpenses)}`}
+                  >
+                    {/* Tooltip on hover */}
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap pointer-events-none z-20">
+                      {formatCurrency(e.totalExpenses)}
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-medium text-center leading-tight">
+                    {new Date(e.monthYear).toLocaleDateString('en-US', { month: 'short' })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-3 gap-2 text-xs">
+        
+        {/* Stats below chart */}
+        <div className="pt-3 border-t border-white/5 grid grid-cols-3 gap-2 text-xs">
           <div className="text-left">
             <span className="text-slate-500">Low</span>
             <p className="font-semibold text-emerald-400">{formatCurrency(min)}</p>
