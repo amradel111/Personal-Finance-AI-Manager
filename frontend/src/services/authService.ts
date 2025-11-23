@@ -1,4 +1,5 @@
 import api from './api';
+import type { UserProfileRecord } from './profileService';
 
 export interface SignupData {
   email: string;
@@ -13,19 +14,6 @@ export interface LoginData {
   password: string;
 }
 
-export interface AuthResponse {
-  message: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    createdAt: string;
-  };
-  token: string;
-}
-
 export interface UserProfile {
   id: string;
   email: string;
@@ -33,7 +21,14 @@ export interface UserProfile {
   lastName: string;
   phone: string;
   createdAt: string;
-  userProfile?: any;
+  lastLogin?: string | null;
+  profile?: UserProfileRecord | null;
+}
+
+export interface AuthResponse {
+  message: string;
+  user: UserProfile;
+  token: string;
 }
 
 export interface CheckProfileStatusResponse {
@@ -80,4 +75,20 @@ export const logout = (): void => {
   localStorage.removeItem('user');
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('user');
+};
+
+/**
+ * Update user account (email)
+ */
+export const updateAccount = async (email: string): Promise<{ message: string; user: UserProfile }> => {
+  const response = await api.put('/auth/update-account', { email });
+  return response.data;
+};
+
+/**
+ * Change user password
+ */
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
+  const response = await api.put('/auth/change-password', { currentPassword, newPassword });
+  return response.data;
 };

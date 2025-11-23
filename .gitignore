@@ -1,11 +1,29 @@
 # Markdown
 *.md
-!QUICK_START.md
+!backend-api.md
+!database-schema.md
+!deployment-prep.md
+!setup-guide.md
+!user-guide.md
+# explicitly ignore project planning docs
+agents.md
+project structure.md
+short_term_goal.md
+tasks.md
+what_is_this_project.md
 
 # Dependencies
 node_modules/
 package-lock.json
 yarn.lock
+
+# Environment configs
+.env
+.env.*
+**/.envs
+**/.env.*
+!.env.example
+!**/.env.example
 
 # Build outputs
 dist/

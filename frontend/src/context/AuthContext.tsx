@@ -23,7 +23,7 @@ import {
   storeAuthCredentials,
 } from '../utils/authStorage';
 
-interface AuthContextValue {
+export interface AuthContextValue {
   user: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;

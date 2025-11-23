@@ -69,3 +69,9 @@ code {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.5);
 }
+
+/* Suppress browser focus rectangles on Recharts SVGs which show large white boxes on click */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none;
+}

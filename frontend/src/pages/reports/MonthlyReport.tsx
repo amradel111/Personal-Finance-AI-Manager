@@ -1,9 +1,17 @@
 // Updated: 2025-11-23 20:38 - Fixed pie chart label styling
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Header from '../../components/Header';
-import { getMonthlyReport, getReportHistory, type MonthlyReportResponse, type HistoryResponse, type CategoryItem } from '../../services/reportsService';
+import {
+  getMonthlyReport,
+  getReportHistory,
+  type MonthlyReportResponse,
+  type HistoryResponse,
+  type CategoryItem,
+  type TrendMonth,
+} from '../../services/reportsService';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, CartesianGrid } from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const percentFormatter = new Intl.NumberFormat('en-US', { style: 'percent', minimumFractionDigits: 0, maximumFractionDigits: 1 });
@@ -29,6 +37,16 @@ const formatMonth = (iso: string | null | undefined) => {
 
 const COLORS = ['#60a5fa', '#f97316', '#22c55e', '#a78bfa', '#f43f5e', '#06b6d4', '#84cc16', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#14b8a6', '#eab308', '#d97706'];
 
+type TooltipMouseState = {
+  isTooltipActive?: boolean;
+  activeTooltipIndex?: number | null;
+};
+
+type CategoryTimelinePoint = {
+  month: string;
+  amount: number;
+};
+
 
 const ScoreBadge = ({ score }: { score: number | undefined }) => {
   if (score === undefined || score === null) return null;
@@ -49,6 +67,7 @@ const SectionCard = ({ children, title, right }: { children: React.ReactNode; ti
 
 const MonthlyReport = () => {
   const [history, setHistory] = useState<HistoryResponse | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [hoverSource, setHoverSource] = useState<'chart' | 'list' | null>(null);
@@ -61,21 +80,25 @@ const MonthlyReport = () => {
   const navigate = useNavigate();
 
   const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
     try {
       const h = await getReportHistory();
       setHistory(h);
-      if (h.months.length && !selectedMonth) {
+      setSelectedMonth((prev) => {
+        if (prev || !h.months.length) return prev;
         const first = h.months[0];
         const d = new Date(first.monthYear);
         const y = d.getUTCFullYear();
         const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-        setSelectedMonth(`${y}-${m}`);
-      }
+        return `${y}-${m}`;
+      });
     } catch (e) {
       const msg = typeof e === 'string' ? e : e instanceof Error ? e.message : 'Failed to load report history';
       setError(msg);
+    } finally {
+      setHistoryLoading(false);
     }
-  }, [selectedMonth]);
+  }, []);
 
   const loadReport = useCallback(async (month: string) => {
     setLoading(true);
@@ -136,7 +159,7 @@ const MonthlyReport = () => {
   }, [report]);
 
   const trendAnalysis = report?.report?.trendAnalysis;
-  const trendMonths = useMemo(() => trendAnalysis?.months ?? [], [trendAnalysis]);
+  const trendMonths = useMemo<TrendMonth[]>(() => trendAnalysis?.months ?? [], [trendAnalysis]);
   const trendStats = trendAnalysis?.stats;
   const trendChartData = useMemo(() => trendMonths.map((m) => ({
     month: formatMonth(m.monthYear),
@@ -163,10 +186,10 @@ const MonthlyReport = () => {
     }
   }, [selectedCategoryKey, categoryTimelineOptions]);
 
-  const categoryTimelineData = useMemo(() => {
-    if (!trendMonths.length || !selectedCategoryKey) return [] as { month: string; amount: number }[];
+  const categoryTimelineData = useMemo<CategoryTimelinePoint[]>(() => {
+    if (!trendMonths.length || !selectedCategoryKey) return [];
     return trendMonths.map((m) => {
-      const raw = (m as any).categories?.[selectedCategoryKey];
+      const raw = m.categories?.[selectedCategoryKey];
       const amount = typeof raw === 'number' ? raw : Number(raw ?? 0);
       return {
         month: formatMonth(m.monthYear),
@@ -178,10 +201,10 @@ const MonthlyReport = () => {
   const monthOverMonth = report?.report?.monthOverMonth;
   const categoryInsights = report?.report?.categoryInsights;
 
-  const renderCategoryLabel = useCallback((props: any) => {
+  const renderCategoryLabel = useCallback((props: PieLabelRenderProps | undefined) => {
     if (!props) return null;
-    const { cx, cy, midAngle, innerRadius, outerRadius, percent, index } = props;
-    if (!categoryData[index]) return null;
+    const { cx = 0, cy = 0, midAngle = 0, innerRadius = 0, outerRadius = 0, percent, index } = props;
+    if (typeof index !== 'number' || !categoryData[index]) return null;
     const RADIAN = Math.PI / 180;
     // Increased threshold to 8% to avoid cramping
     if (!percent || percent < 0.08) return null;
@@ -251,7 +274,7 @@ const MonthlyReport = () => {
 
           {error && <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{error}</div>}
 
-          {!history?.months?.length && (
+          {!historyLoading && !history?.months?.length && !error && (
             <div className="rounded-2xl border border-dashed border-warmgray-300 bg-warmgray-50/50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900/60">
               <h3 className="text-2xl font-semibold text-warmgray-900 dark:text-white">No report data available</h3>
               <p className="mt-3 text-sm text-warmgray-600 dark:text-slate-300">Add your first monthly expenses to generate a report.</p>
@@ -261,7 +284,7 @@ const MonthlyReport = () => {
             </div>
           )}
 
-          {loading && (
+          {(historyLoading || loading) && (
             <div className="space-y-6 animate-pulse">
               <div className="h-24 rounded-2xl bg-white/10" />
               <div className="grid gap-6 lg:grid-cols-2">
@@ -443,8 +466,8 @@ const MonthlyReport = () => {
                   <div className="mt-4 grid gap-3 grid-cols-2">
                     <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
                       <p className="text-xs text-warmgray-700 dark:text-slate-400">Emergency Fund</p>
-                      <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{(report.report as any).emergencyFundMonths ?? 0} months</p>
-                      <p className="text-xs mt-1 text-warmgray-700 dark:text-slate-400">{((report.report as any).emergencyFundMonths ?? 0) >= 3 ? 'Within typical 3–6 months guideline' : 'Below typical 3–6 months guideline'}</p>
+                      <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{report.report.emergencyFundMonths ?? 0} months</p>
+                      <p className="text-xs mt-1 text-warmgray-700 dark:text-slate-400">{(report.report.emergencyFundMonths ?? 0) >= 3 ? 'Within typical 3–6 months guideline' : 'Below typical 3–6 months guideline'}</p>
                     </div>
                     {report.assessment && (
                       <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
@@ -509,8 +532,8 @@ const MonthlyReport = () => {
                       <BarChart
                         data={compareData}
                         margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
-                        onMouseMove={(state: any) => {
-                          if (state.isTooltipActive) {
+                        onMouseMove={(state: TooltipMouseState) => {
+                          if (state.isTooltipActive && typeof state.activeTooltipIndex === 'number') {
                             setActiveIncomeIndex(state.activeTooltipIndex);
                           } else {
                             setActiveIncomeIndex(null);
@@ -579,8 +602,8 @@ const MonthlyReport = () => {
                       <BarChart
                         data={esVsDsData}
                         margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
-                        onMouseMove={(state: any) => {
-                          if (state.isTooltipActive) {
+                        onMouseMove={(state: TooltipMouseState) => {
+                          if (state.isTooltipActive && typeof state.activeTooltipIndex === 'number') {
                             setActiveEssentialIndex(state.activeTooltipIndex);
                           } else {
                             setActiveEssentialIndex(null);

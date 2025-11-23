@@ -1,5 +1,6 @@
-import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import MobileNav from './MobileNav';
 
 export const FullScreenLoader = () => (
   <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -11,9 +12,8 @@ export const FullScreenLoader = () => (
 );
 
 const ProtectedRoute = () => {
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
   if (isLoading) {
     return <FullScreenLoader />;
@@ -23,13 +23,13 @@ const ProtectedRoute = () => {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  const handleLogout = () => {
-    logout();
-    navigate('/auth', { replace: true });
-  };
-
   return (
-    <Outlet />
+    <>
+      <div className="pb-24 md:pb-0">
+        <Outlet />
+      </div>
+      <MobileNav />
+    </>
   );
 };
 
