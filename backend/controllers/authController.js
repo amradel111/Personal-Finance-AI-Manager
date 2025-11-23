@@ -228,9 +228,120 @@ const checkProfileStatus = async (req, res) => {
   }
 };
 
+const updateAccount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { email } = req.body;
+
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        error: 'Email is required'
+      });
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        error: 'Please provide a valid email address'
+      });
+    }
+
+    // Check if email is already taken by another user
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
+
+    if (existingUser && existingUser.id !== userId) {
+      return res.status(409).json({
+        error: 'This email is already in use'
+      });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { email: normalizedEmail },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        createdAt: true
+      }
+    });
+
+    res.json({
+      message: 'Account updated successfully',
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error('Update account error:', error);
+    res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+};
+
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        error: 'Current password and new password are required'
+      });
+    }
+
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({
+        error: 'New password must be at least 8 characters and include upper, lower, number, and special character'
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    const isValidPassword = await comparePassword(currentPassword, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        error: 'Incorrect current password'
+      });
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword }
+    });
+
+    res.json({
+      message: 'Password changed successfully'
+    });
+
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      error: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
   getProfile,
-  checkProfileStatus
+  checkProfileStatus,
+  updateAccount,
+  changePassword
 };

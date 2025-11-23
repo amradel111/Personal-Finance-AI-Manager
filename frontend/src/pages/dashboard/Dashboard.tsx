@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import Header from '../../components/Header';
@@ -58,6 +58,11 @@ type QuickStat = {
   tone?: 'positive' | 'negative' | 'neutral';
 };
 
+type TooltipMouseState = {
+  isTooltipActive?: boolean;
+  activeTooltipIndex?: number | null;
+};
+
 const toneClassMap: Record<NonNullable<QuickStat['tone']>, string> = {
   positive: 'text-emerald-300',
   negative: 'text-rose-300',
@@ -75,7 +80,7 @@ const StatCard = ({ title, value, subtext }: { title: string; value: string; sub
 );
 
 const SummaryGrid = ({ summary }: { summary: DashboardSummary }) => (
-  <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-4">
+  <div className="grid gap-4 sm:gap-6 grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-2 xl:grid-cols-4">
     <StatCard title="Monthly Income" value={formatCurrency(summary.totalIncome)} />
     <StatCard title="Monthly Expenses" value={formatCurrency(summary.totalExpenses)} />
     <StatCard
@@ -208,6 +213,25 @@ const SavingsProgressCard = ({ rate }: { rate: number | null }) => {
 
 const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | null }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const chartRef = useRef<HTMLDivElement | null>(null);
+
+  const hideChartFocus = useCallback(() => {
+    setActiveIndex(null);
+    setIsTooltipVisible(false);
+  }, []);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!chartRef.current) return;
+      if (!chartRef.current.contains(event.target as Node)) {
+        hideChartFocus();
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [hideChartFocus]);
 
   if (!recent || !recent.hasExpensesData || !recent.expenses.length) {
     return null;
@@ -261,19 +285,24 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
         <span className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">LAST {last.length} MONTHS</span>
       </div>
       <div className="space-y-4">
-        <div className="h-48 w-full -ml-2">
+        <div
+          className="h-48 w-full -ml-2"
+          ref={chartRef}
+          onPointerLeave={hideChartFocus}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart 
               data={chartData} 
               margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
-              onMouseMove={(state: any) => {
-                if (state.isTooltipActive) {
+              onMouseMove={(state: TooltipMouseState) => {
+                if (state.isTooltipActive && typeof state.activeTooltipIndex === 'number') {
                   setActiveIndex(state.activeTooltipIndex);
+                  setIsTooltipVisible(true);
                 } else {
-                  setActiveIndex(null);
+                  hideChartFocus();
                 }
               }}
-              onMouseLeave={() => setActiveIndex(null)}
+              onMouseLeave={hideChartFocus}
             >
               <XAxis 
                 dataKey="name" 
@@ -290,15 +319,16 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
                 tick={{ fontSize: 10 }}
                 tickFormatter={(value: number) => currencyFormatter.format(value).replace('$', '$')}
               />
-              <Tooltip 
+              <Tooltip
                 cursor={false}
                 content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
+                  if (isTooltipVisible && active && payload && payload.length) {
+                    const tooltipPayload = payload[0]?.payload as typeof chartData[number];
+                    if (!tooltipPayload) return null;
                     return (
                       <div className="rounded-lg border border-white/10 bg-slate-900/95 p-2 shadow-xl backdrop-blur-md">
-                        <p className="text-xs font-medium text-slate-400 mb-1">{data.fullDate}</p>
-                        <p className="text-sm font-bold text-white">{formatCurrency(data.value)}</p>
+                        <p className="text-xs font-medium text-slate-400 mb-1">{tooltipPayload.fullDate}</p>
+                        <p className="text-sm font-bold text-white">{formatCurrency(tooltipPayload.value)}</p>
                       </div>
                     );
                   }
@@ -428,7 +458,7 @@ const Dashboard = () => {
         console.error('Profile status check failed:', err);
         if (isMounted) {
           // Fallback: infer from cached user profile if available; otherwise keep loading state
-          const inferred = Boolean(user && (user as any).userProfile);
+          const inferred = Boolean(user?.profile);
           setHasProfile(inferred ? true : null);
         }
       }

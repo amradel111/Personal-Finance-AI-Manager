@@ -7,6 +7,7 @@ import ProfileSetup from './pages/profile/ProfileSetup';
 import Dashboard from './pages/dashboard/Dashboard';
 import MonthlyReport from './pages/reports/MonthlyReport';
 import AddExpenses from './pages/expenses/AddExpenses';
+import EditAccount from './pages/auth/EditAccount';
 
 const Placeholder = ({ title, message }: { title: string; message: string }) => (
   <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 flex items-center justify-center px-4">
@@ -32,6 +33,7 @@ function App() {
             <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/add-expenses" element={<AddExpenses />} />
             <Route path="/monthly-report" element={<MonthlyReport />} />
+            <Route path="/edit-account" element={<EditAccount />} />
           </Route>
 
           <Route

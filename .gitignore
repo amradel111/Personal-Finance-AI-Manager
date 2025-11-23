@@ -1,11 +1,22 @@
-# Markdown
-*.md
-!QUICK_START.md
+
+agents.md
+project structure.md
+short_term_goal.md
+tasks.md
+what_is_this_project.md
 
 # Dependencies
 node_modules/
 package-lock.json
 yarn.lock
+
+# Environment configs
+.env
+.env.*
+**/.envs
+**/.env.*
+!.env.example
+!**/.env.example
 
 # Build outputs
 dist/

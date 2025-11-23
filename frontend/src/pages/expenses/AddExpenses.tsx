@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Header from '../../components/Header';
-import { createExpense, getExpenseByMonth, updateExpense, type ExpensePayload, type ExpenseRecord } from '../../services/expensesService';
+import {
+  createExpense,
+  getExpenseByMonth,
+  updateExpense,
+  type ExpensePayload,
+  type ExpenseRecord,
+  type MonthString,
+} from '../../services/expensesService';
 import { useNavigate } from 'react-router-dom';
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -100,27 +107,25 @@ const essentialKeys: AmountKey[] = [
   'childcare',
 ];
 
-function getCurrentMonth(): string {
+function getCurrentMonth(): MonthString {
   const d = new Date();
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
+  return `${y}-${m}` as MonthString;
 }
 
 // --- MonthPicker Component ---
 
 interface MonthPickerProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: MonthString;
+  onChange: (value: MonthString) => void;
   className?: string;
   disabled?: boolean;
 }
 
 function MonthPicker({ value, onChange, className, disabled }: MonthPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [viewYear, setViewYear] = useState(() => {
-    return value ? parseInt(value.split('-')[0], 10) : new Date().getFullYear();
-  });
+  const [viewYear, setViewYear] = useState(() => parseInt(value.split('-')[0], 10));
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Close on click outside
@@ -136,9 +141,7 @@ function MonthPicker({ value, onChange, className, disabled }: MonthPickerProps)
 
   // Sync viewYear when value changes externally
   useEffect(() => {
-    if (value) {
-      setViewYear(parseInt(value.split('-')[0], 10));
-    }
+    setViewYear(parseInt(value.split('-')[0], 10));
   }, [value]);
 
   const months = [
@@ -152,7 +155,7 @@ function MonthPicker({ value, onChange, className, disabled }: MonthPickerProps)
 
   const handleMonthSelect = (monthIndex: number) => {
     const m = String(monthIndex + 1).padStart(2, '0');
-    onChange(`${viewYear}-${m}`);
+    onChange(`${viewYear}-${m}` as MonthString);
     setIsOpen(false);
   };
 
@@ -160,7 +163,7 @@ function MonthPicker({ value, onChange, className, disabled }: MonthPickerProps)
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
-    onChange(`${y}-${m}`);
+    onChange(`${y}-${m}` as MonthString);
     setViewYear(y);
     setIsOpen(false);
   };
@@ -168,7 +171,7 @@ function MonthPicker({ value, onChange, className, disabled }: MonthPickerProps)
   const displayValue = useMemo(() => {
     if (!value) return 'Select Month';
     const [y, m] = value.split('-');
-    const date = new Date(parseInt(y), parseInt(m) - 1);
+    const date = new Date(Number.parseInt(y, 10), Number.parseInt(m, 10) - 1);
     return date.toLocaleString('default', { month: 'long', year: 'numeric' });
   }, [value]);
 
@@ -258,7 +261,6 @@ function evaluateMath(input: string): number | null {
     // Allow numbers, operators (+, -, *, /), parens, dots, and spaces
     const sanitized = input.replace(/[^0-9+\-*/().\s]/g, '');
     if (!sanitized.trim()) return null;
-    // eslint-disable-next-line no-new-func
     const result = new Function('return ' + sanitized)();
     return Number.isFinite(result) ? result : null;
   } catch {
@@ -422,7 +424,7 @@ function SmartNumberInput({ value, onChange, className, placeholder }: SmartNumb
 
 export default function AddExpenses() {
   const navigate = useNavigate();
-  const [month, setMonth] = useState<string>(getCurrentMonth());
+  const [month, setMonth] = useState<MonthString>(getCurrentMonth());
   const [amounts, setAmounts] = useState<Amounts>({ ...defaultAmounts });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -448,7 +450,7 @@ export default function AddExpenses() {
         }, 300);
 
         try {
-          const res = await getExpenseByMonth(month as any);
+          const res = await getExpenseByMonth(month);
           if (!alive) return;
           if (res?.expense) {
             setExistingExpense(res.expense);
@@ -522,13 +524,8 @@ export default function AddExpenses() {
     setError(null);
     setSuccess(null);
 
-    if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-      setError('Please select a valid month (YYYY-MM).');
-      return;
-    }
-
     const payload: ExpensePayload = {
-      monthYear: month as any,
+      monthYear: month,
       ...amounts,
     };
 

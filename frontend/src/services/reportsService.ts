@@ -63,6 +63,7 @@ export interface ReportPayload {
   totalExpenses: number;
   savingsAmount: number;
   savingsRate: number;
+  emergencyFundMonths: number;
   categoryBreakdown: CategoryItem[];
   essentialVsDiscretionary: EssentialVsDiscretionary;
   debt: DebtMetrics;
