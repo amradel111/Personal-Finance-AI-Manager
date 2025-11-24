@@ -27,6 +27,8 @@ model User {
   expenses      MonthlyExpense[]
   healthRecords FinancialHealth[]
   resetTokens   PasswordResetToken[]
+  goals         Goal[]
+  budgets       Budget[]
 
   @@map("users")
 }
@@ -167,4 +169,44 @@ model PasswordResetToken {
   @@index([userId])
   @@index([tokenHash])
   @@map("password_reset_tokens")
+}
+
+// Goals table
+model Goal {
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  type                 String   // emergency_fund, home, retirement, debt_payoff, vacation, etc.
+  name                 String
+  targetAmount         Float?   @map("target_amount")
+  monthlyTargetAmount  Float?   @map("monthly_target_amount")
+  startMonthYear       String?  @map("start_month_year") // YYYY-MM
+  targetMonthYear      String?  @map("target_month_year") // YYYY-MM
+  status               String   @default("active") // active, completed, paused
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("goals")
+}
+
+// Budgets table
+model Budget {
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  monthYear            DateTime @map("month_year") // Format: YYYY-MM-01
+  budgetedAmount       Float    @map("budgeted_amount")
+  actualSpending       Float    @map("actual_spending")
+  category             String   // Category of the budget, e.g., housing, food, transportation, etc.
+  notes                String?  // Optional notes about the budget
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, monthYear, category])
+  @@map("budgets")
 }

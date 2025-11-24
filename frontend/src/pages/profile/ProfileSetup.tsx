@@ -14,6 +14,8 @@ import {
 } from '../../services/profileService';
 import { useAuth } from '../../context/AuthContext';
 import Select from '../../components/Select';
+import MonthPicker, { type MonthString } from '../../components/MonthPicker';
+import { fetchGoals, createGoal, updateGoal, deleteGoal } from '../../services/goalsService';
 
 const numberInputClass = (hasError: boolean) =>
   `w-full bg-white border border-warmgray-300 rounded-md px-4 py-3 text-warmgray-900 text-sm transition focus:outline-none focus:ring-2 ${
@@ -55,6 +57,17 @@ const ProfileSetup = () => {
   const [emergency_fund_months, setEmergencyFundMonths] = useState<number>(0);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Goal Tracking State
+  const [goalType, setGoalType] = useState<'total' | 'monthly'>('total');
+  const [goalName, setGoalName] = useState<string>('');
+  const [targetAmount, setTargetAmount] = useState<number>(0);
+  const [monthlyTargetAmount, setMonthlyTargetAmount] = useState<number>(0);
+  const [startMonth, setStartMonth] = useState<MonthString | ''>('');
+  const [targetMonth, setTargetMonth] = useState<MonthString | ''>('');
+  const [existingGoals, setExistingGoals] = useState<any[]>([]);
+  const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
+  const [isLoadingGoals, setIsLoadingGoals] = useState<boolean>(false);
 
   const derived = useMemo(() => {
     const income = Math.max(0, Number(monthly_household_income) || 0);
@@ -103,6 +116,116 @@ const ProfileSetup = () => {
       isMounted = false;
     };
   }, []);
+
+  // Load goals when component mounts
+  useEffect(() => {
+    const loadGoals = async () => {
+      setIsLoadingGoals(true);
+      try {
+        const goals = await fetchGoals();
+        setExistingGoals(goals);
+      } catch (error) {
+        console.error('Failed to fetch goals:', error);
+      } finally {
+        setIsLoadingGoals(false);
+      }
+    };
+    void loadGoals();
+  }, []);
+
+  // Reset goal form
+  const resetGoalForm = () => {
+    setGoalName('');
+    setTargetAmount(0);
+    setMonthlyTargetAmount(0);
+    setStartMonth('');
+    setTargetMonth('');
+    setEditingGoalId(null);
+  };
+
+  // Save goal (create or update)
+  const handleSaveGoal = async () => {
+    if (!goalName.trim()) {
+      alert('Please enter a goal name');
+      return;
+    }
+
+    if (goalType === 'total') {
+      if (targetAmount <= 0) {
+        alert('Please enter a valid target amount');
+        return;
+      }
+      if (!startMonth || !targetMonth) {
+        alert('Please select start and target months');
+        return;
+      }
+    } else {
+      if (monthlyTargetAmount <= 0) {
+        alert('Please enter a valid monthly target amount');
+        return;
+      }
+    }
+
+    try {
+      const payload: any = {
+        name: goalName,
+        type: goalType,
+        status: 'active',
+      };
+
+      if (goalType === 'total') {
+        payload.targetAmount = targetAmount;
+        payload.startMonthYear = startMonth;
+        payload.targetMonthYear = targetMonth;
+      } else {
+        payload.monthlyTargetAmount = monthlyTargetAmount;
+      }
+
+      if (editingGoalId) {
+        await updateGoal(editingGoalId, payload);
+      } else {
+        await createGoal(payload);
+      }
+
+      // Reload goals
+      const goals = await fetchGoals();
+      setExistingGoals(goals);
+      resetGoalForm();
+    } catch (error) {
+      console.error('Failed to save goal:', error);
+      alert('Failed to save goal. Please try again.');
+    }
+  };
+
+  // Delete goal
+  const handleDeleteGoal = async (goalId: number) => {
+    if (!confirm('Are you sure you want to delete this goal?')) {
+      return;
+    }
+
+    try {
+      await deleteGoal(goalId);
+      const goals = await fetchGoals();
+      setExistingGoals(goals);
+    } catch (error) {
+      console.error('Failed to delete goal:', error);
+      alert('Failed to delete goal. Please try again.');
+    }
+  };
+
+  // Edit goal
+  const handleEditGoal = (goal: any) => {
+    setEditingGoalId(goal.id);
+    setGoalName(goal.name);
+    setGoalType(goal.type);
+    if (goal.type === 'total') {
+      setTargetAmount(goal.targetAmount || 0);
+      setStartMonth(goal.startMonthYear || '');
+      setTargetMonth(goal.targetMonthYear || '');
+    } else {
+      setMonthlyTargetAmount(goal.monthlyTargetAmount || 0);
+    }
+  };
 
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
@@ -386,6 +509,198 @@ const ProfileSetup = () => {
                     {errors.emergency_fund_months && <p className="text-xs text-rose-600">• {errors.emergency_fund_months}</p>}
                   </div>
                 </div>
+              </div>
+
+              {/* Goal Tracking Section */}
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold text-warmgray-900 dark:text-white mb-4">
+                  Goal Tracking
+                </h2>
+                
+                {/* Create/Edit Goal Form */}
+                <div className="space-y-6 bg-slate-50 dark:bg-slate-800/50 p-6 rounded-xl mb-6">
+                  <div className={fieldWrapperClass}>
+                    <label className={labelClass}>Goal Name</label>
+                    <input
+                      type="text"
+                      value={goalName}
+                      onChange={(e) => setGoalName(e.target.value)}
+                      placeholder="e.g., Vacation Fund, Emergency Savings"
+                      className={numberInputClass(false)}
+                    />
+                  </div>
+
+                  {/* Goal Type Selector */}
+                  <div className={fieldWrapperClass}>
+                    <label className={labelClass}>Goal Type</label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setGoalType('total')}
+                        className={`flex-1 px-4 py-3 rounded-lg border-2 font-semibold text-sm transition ${
+                          goalType === 'total'
+                            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        Total Amount Goal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGoalType('monthly')}
+                        className={`flex-1 px-4 py-3 rounded-lg border-2 font-semibold text-sm transition ${
+                          goalType === 'monthly'
+                            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                            : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        Monthly Amount Goal
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Conditional Fields Based on Goal Type */}
+                  {goalType === 'total' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className={fieldWrapperClass}>
+                        <label className={labelClass}>Target Amount ($)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={targetAmount || ''}
+                          onChange={(e) => setTargetAmount(Number(e.target.value))}
+                          placeholder="e.g., 10000"
+                          className={numberInputClass(false)}
+                        />
+                      </div>
+                      <div className={fieldWrapperClass}>
+                        <label className={labelClass}>Start Month</label>
+                        <MonthPicker
+                          value={startMonth}
+                          onChange={setStartMonth}
+                          className={numberInputClass(false) + ' text-left flex items-center justify-between'}
+                        />
+                      </div>
+                      <div className={fieldWrapperClass}>
+                        <label className={labelClass}>Target Month</label>
+                        <MonthPicker
+                          value={targetMonth}
+                          onChange={setTargetMonth}
+                          className={numberInputClass(false) + ' text-left flex items-center justify-between'}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={fieldWrapperClass}>
+                      <label className={labelClass}>Monthly Savings Target ($)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={monthlyTargetAmount || ''}
+                        onChange={(e) => setMonthlyTargetAmount(Number(e.target.value))}
+                        placeholder="e.g., 500"
+                        className={numberInputClass(false)}
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveGoal}
+                      className="px-6 py-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-sm transition"
+                    >
+                      {editingGoalId ? 'Update Goal' : 'Add Goal'}
+                    </button>
+                    {editingGoalId && (
+                      <button
+                        type="button"
+                        onClick={resetGoalForm}
+                        className="px-6 py-3 rounded-lg bg-slate-300 dark:bg-slate-700 hover:bg-slate-400 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold text-sm transition"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Existing Goals List */}
+                {isLoadingGoals ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Loading goals...</p>
+                ) : existingGoals.length > 0 ? (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-warmgray-900 dark:text-white">Your Goals</h3>
+                    {existingGoals.map((goal) => (
+                      <div
+                        key={goal.id}
+                        className="bg-slate-800/40 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50 shadow-lg"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex flex-col gap-1 text-left">
+                            <h4 className="text-lg font-bold text-white leading-tight">{goal.name}</h4>
+                            <p className="text-sm text-slate-400">
+                              {goal.type === 'total' 
+                                ? `Target: $${goal.targetAmount?.toLocaleString() || 0} by ${goal.targetMonthYear || 'N/A'}`
+                                : `Monthly: $${goal.monthlyTargetAmount?.toLocaleString() || 0}`
+                              }
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditGoal(goal)}
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition border border-blue-500/30"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteGoal(goal.id)}
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 transition border border-rose-500/30"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        {goal.progress && (
+                          <div className="mt-2">
+                            <div className="flex justify-between text-sm font-medium text-slate-300 mb-2">
+                              <span>Progress</span>
+                              <span>
+                                {goal.type === 'total' 
+                                  ? `${((goal.progress.progressPercent || 0) * 100).toFixed(1)}%`
+                                  : `${Math.min(((goal.progress.lastContribution || 0) / (goal.monthlyTargetAmount || 1)) * 100, 100).toFixed(1)}%`
+                                }
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  goal.progress.onTrack ? 'bg-emerald-500' : 'bg-rose-500'
+                                }`}
+                                style={{ 
+                                  width: goal.type === 'total' 
+                                    ? `${Math.min((goal.progress.progressPercent || 0) * 100, 100)}%` 
+                                    : `${Math.min(((goal.progress.lastContribution || 0) / (goal.monthlyTargetAmount || 1)) * 100, 100)}%`
+                                }}
+                              />
+                            </div>
+                            {goal.type === 'monthly' && (
+                              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                                <span>${goal.progress.lastContribution?.toLocaleString() || 0} saved this month</span>
+                                <span>{goal.progress.onTrack ? 'On Track' : 'Off Track'}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">No goals yet. Create your first goal above!</p>
+                )}
               </div>
 
               {/* Live Derived Preview */}

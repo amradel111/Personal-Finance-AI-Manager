@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Header from '../../components/Header';
+import { type MonthString } from '../../components/MonthPicker';
 import {
   createExpense,
   getExpenseByMonth,
   updateExpense,
   type ExpensePayload,
   type ExpenseRecord,
-  type MonthString,
 } from '../../services/expensesService';
+import { getBudgets, upsertBudget } from '../../services/budgetsService';
 import { useNavigate } from 'react-router-dom';
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -422,6 +423,125 @@ function SmartNumberInput({ value, onChange, className, placeholder }: SmartNumb
   );
 }
 
+const BudgetControl = ({
+  category,
+  month,
+  currentBudget,
+  spent,
+  onUpdate
+}: {
+  category: string;
+  month: string;
+  currentBudget: number | undefined;
+  spent: number;
+  onUpdate: (val: number) => void;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [val, setVal] = useState(currentBudget?.toString() || '');
+
+  useEffect(() => {
+    setVal(currentBudget?.toString() || '');
+  }, [currentBudget]);
+
+  const handleSave = async () => {
+    const num = parseFloat(val);
+    if (!isNaN(num) && num >= 0) {
+      try {
+        await upsertBudget({ category, amount: num, monthYear: month });
+        onUpdate(num);
+        setIsEditing(false);
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      setIsEditing(false);
+      setVal(currentBudget?.toString() || '');
+      setIsEditing(false);
+    }
+  };
+
+  const percentage = currentBudget && currentBudget > 0 ? (spent / currentBudget) * 100 : 0;
+  const isOverBudget = percentage > 100;
+  const isNearBudget = percentage > 85;
+  
+  const progressColor = isOverBudget 
+    ? 'bg-rose-500' 
+    : isNearBudget 
+      ? 'bg-amber-500' 
+      : 'bg-emerald-500';
+
+  if (isEditing) {
+    return (
+      <div className="mt-2 flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+        <span className="text-xs font-medium text-warmgray-700 dark:text-slate-300">Budget:</span>
+        <div className="relative">
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-warmgray-500">$</span>
+          <input
+            type="number"
+            value={val}
+            onChange={(e) => setVal(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            autoFocus
+            className="w-24 pl-5 pr-2 py-1 text-xs border rounded-md border-warmgray-300 dark:bg-slate-800 dark:border-slate-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-3">
+      <button
+        type="button"
+        onClick={() => setIsEditing(true)}
+        className={`
+          group flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 border
+          ${currentBudget !== undefined
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-900/30'
+            : 'bg-warmgray-50 text-warmgray-500 border-warmgray-200 hover:bg-warmgray-100 hover:text-warmgray-700 hover:border-warmgray-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-300'
+          }
+        `}
+      >
+        {currentBudget !== undefined ? (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.25a.75.75 0 00-1.5 0v2.5h-2.5a.75.75 0 000 1.5h2.5v2.5a.75.75 0 001.5 0v-2.5h2.5a.75.75 0 000-1.5h-2.5v-2.5z" clipRule="evenodd" />
+            </svg>
+            <span>Budget: {currency.format(currentBudget)}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 opacity-0 -ml-1 group-hover:opacity-100 transition-opacity">
+              <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z" />
+              <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z" />
+            </svg>
+          </>
+        ) : (
+          <>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+            </svg>
+            <span>Set Budget</span>
+          </>
+        )}
+      </button>
+
+      {currentBudget !== undefined && (
+        <div className="flex-1 flex flex-col gap-1 min-w-[120px] max-w-xs animate-in fade-in duration-300">
+          <div className="flex justify-between text-[10px] font-medium text-warmgray-500 dark:text-slate-400 px-0.5">
+            <span>{Math.round(percentage)}%</span>
+            <span>{currency.format(Math.max(0, currentBudget - spent))} left</span>
+          </div>
+          <div className="h-1.5 w-full bg-warmgray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
+              style={{ width: `${Math.min(100, percentage)}%` }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function AddExpenses() {
   const navigate = useNavigate();
   const [month, setMonth] = useState<MonthString>(getCurrentMonth());
@@ -432,6 +552,7 @@ export default function AddExpenses() {
   const [existingExpense, setExistingExpense] = useState<ExpenseRecord | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
+  const [budgets, setBudgets] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let alive = true;
@@ -498,6 +619,28 @@ export default function AddExpenses() {
     };
   }, [month]);
 
+  useEffect(() => {
+    let alive = true;
+    const loadBudgets = async () => {
+      try {
+        const budgetList = await getBudgets(month);
+        if (alive) {
+          const budgetMap: Record<string, number> = {};
+          budgetList.forEach((b) => {
+            budgetMap[b.category] = b.budgetedAmount;
+          });
+          setBudgets(budgetMap);
+        }
+      } catch (err) {
+        console.error('Failed to load budgets', err);
+      }
+    };
+    loadBudgets();
+    return () => {
+      alive = false;
+    };
+  }, [month]);
+
   const totals = useMemo(() => {
     const all = Object.values(amounts).reduce((sum, v) => sum + (Number.isFinite(v) ? v : 0), 0);
     const essential = essentialKeys.reduce((sum, k) => sum + (amounts[k] || 0), 0);
@@ -540,7 +683,6 @@ export default function AddExpenses() {
         await createExpense(payload);
         setSuccess('Expenses saved successfully.');
       }
-      setTimeout(() => navigate('/dashboard'), 800);
     } catch (err) {
       const msg = typeof err === 'string' ? err : err instanceof Error ? err.message : 'Failed to save expenses';
       setError(msg);
@@ -628,6 +770,13 @@ export default function AddExpenses() {
                               onChange={(val) => onChangeAmount(item.key, val)}
                               className={numberInputClass(false)}
                               placeholder="0.00"
+                            />
+                            <BudgetControl
+                              category={item.key}
+                              month={month}
+                              currentBudget={budgets[item.key]}
+                              spent={amounts[item.key] || 0}
+                              onUpdate={(newVal) => setBudgets((prev) => ({ ...prev, [item.key]: newVal }))}
                             />
                           </div>
                         ))}

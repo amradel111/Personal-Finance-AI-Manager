@@ -85,6 +85,19 @@ Returns `hasData`, `report`, and `assessment` objects. |
 - `categoryInsights.topIncreases` / `.topDecreases`
 - `assessment` merges live calculation with stored dataset record and includes financial stress level, optimization priority, and problem flags.
 
+## Goals (`/goals`)
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/goals` | Fetch all goals for the authenticated user with computed progress data. Returns array of goal records with progress details (totalContribution, averageMonthlyContribution, progressPercent, onTrack, paceStatus, etc.). |
+| POST | `/goals` | Create a new goal. Body: `{ name, type, target_amount, monthly_target_amount, start_month_year, target_month_year }`. Either `target_amount` (for total goal) or `monthly_target_amount` (for monthly pace) must be provided. Dates in `YYYY-MM` format. Returns created goal with progress. |
+| PUT | `/goals/:id` | Update an existing goal. Same body fields as create (all optional). Returns updated goal with recalculated progress. |
+| DELETE | `/goals/:id` | Delete a goal by ID. Returns `{ success: true, message }`. |
+
+**Goal Types:** `emergency_fund`, `home`, `retirement`, `education`, `other`, `custom`
+
+**Progress Calculation:** Goals track savings contributions from monthly expenses. For total amount goals, progress shows percentage toward target and estimated completion. For monthly target goals, progress compares last month's savings against the target pace.
+
 ## Error Handling
 - Validation issues return `400` with `error` or `errors` arrays describing the offending fields.
 - Authentication failures return `401` (`Invalid email or password`, `Missing/invalid token`).

@@ -1,4 +1,7 @@
 const prisma = require('../config/database');
+const { computeGoalProgressForUser, getPrimaryGoal } = require('../utils/goals');
+
+const SAVINGS_BENCHMARK_RATE = 0.2; // 20% savings benchmark
 
 const CATEGORY_DEFINITIONS = [
   { key: 'housing_utilities', field: 'housingUtilities', label: 'Housing & Utilities' },
@@ -36,23 +39,61 @@ const getDashboardSummary = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Fetch profile (income, health score, savings rate)
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId },
-      select: {
-        monthlyHouseholdIncome: true,
-        financialHealthScore: true,
-        savingsRatePercentage: true,
-      },
-    });
+    // Fetch profile (income, health score, savings rate) and goals
+    const [profile, expensesDesc, userGoals] = await Promise.all([
+      prisma.userProfile.findUnique({
+        where: { userId },
+        select: {
+          monthlyHouseholdIncome: true,
+          financialHealthScore: true,
+          savingsRatePercentage: true,
+          savingsGoalMonthly: true,
+        },
+      }),
+      prisma.monthlyExpense.findMany({
+        where: { userId },
+        orderBy: { monthYear: 'desc' },
+      }),
+      prisma.goal.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+    ]);
 
     const income = profile?.monthlyHouseholdIncome ?? 0;
+    const latestExpense = expensesDesc[0] ?? null;
+    const expensesAsc = [...expensesDesc].reverse();
 
-    // Fetch latest monthly expense record
-    const latestExpense = await prisma.monthlyExpense.findFirst({
-      where: { userId },
-      orderBy: { monthYear: 'desc' },
-    });
+    const goalsWithProgress = computeGoalProgressForUser(userGoals, expensesAsc);
+    const primaryGoal = getPrimaryGoal(goalsWithProgress);
+    const activeGoals = goalsWithProgress.filter((goal) => goal.status === 'active');
+
+    const goalInsights = {
+      hasGoals: goalsWithProgress.length > 0,
+      totalGoals: goalsWithProgress.length,
+      activeGoals: activeGoals.length,
+      primaryGoal: primaryGoal
+        ? {
+            id: primaryGoal.id,
+            name: primaryGoal.name,
+            type: primaryGoal.type,
+            status: primaryGoal.status,
+            targetAmount: primaryGoal.targetAmount,
+            monthlyTargetAmount: primaryGoal.monthlyTargetAmount,
+            startMonthYear: primaryGoal.startMonthYear,
+            targetMonthYear: primaryGoal.targetMonthYear,
+            progress: primaryGoal.progress,
+          }
+        : null,
+      goals: activeGoals.map(g => ({
+        id: g.id,
+        name: g.name,
+        type: g.type,
+        status: g.status,
+        targetAmount: g.targetAmount,
+        monthlyTargetAmount: g.monthlyTargetAmount,
+        startMonthYear: g.startMonthYear,
+        targetMonthYear: g.targetMonthYear,
+        progress: g.progress,
+      })),
+    };
 
     // If no expenses yet, return placeholders with whatever we can from profile
     if (!latestExpense) {
@@ -67,6 +108,12 @@ const getDashboardSummary = async (req, res) => {
           financialHealthScore: profile?.financialHealthScore ?? null,
           topSpendingCategories: [],
           meets_50_30_20_rule: null,
+          benchmarkSavingsRateGoal: SAVINGS_BENCHMARK_RATE,
+          userSavingsGoalMonthly: profile?.savingsGoalMonthly ?? null,
+          benchmarkMet: profile?.savingsRatePercentage != null
+            ? profile.savingsRatePercentage >= SAVINGS_BENCHMARK_RATE
+            : null,
+          goalInsights,
           message: 'No expense data found. Add expenses to unlock insights.'
         }
       });
@@ -91,6 +138,12 @@ const getDashboardSummary = async (req, res) => {
         financialHealthScore: profile?.financialHealthScore ?? null,
         topSpendingCategories,
         meets_50_30_20_rule: latestExpense.meets50_30_20Rule ?? null,
+        benchmarkSavingsRateGoal: SAVINGS_BENCHMARK_RATE,
+        userSavingsGoalMonthly: profile?.savingsGoalMonthly ?? null,
+        benchmarkMet: Number.isFinite(savingsRate)
+          ? savingsRate >= SAVINGS_BENCHMARK_RATE
+          : null,
+        goalInsights,
       }
     });
   } catch (error) {

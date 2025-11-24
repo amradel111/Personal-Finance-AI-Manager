@@ -11,6 +11,7 @@ import {
   type DashboardSummary,
   type RecentExpensesResponse,
   type DashboardTopCategory,
+  type DashboardGoalInsights,
 } from '../../services/dashboardService';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -171,7 +172,7 @@ const QuickStatsSection = ({ stats }: { stats: QuickStat[] }) => {
   );
 };
 
-const SavingsProgressCard = ({ rate }: { rate: number | null }) => {
+const SavingsProgressCard = ({ rate, goalInsights }: { rate: number | null; goalInsights?: DashboardGoalInsights }) => {
   if (rate === null || Number.isNaN(rate)) return null;
 
   // Actual savings rate as a percentage (e.g. 0.26 -> 26)
@@ -192,20 +193,62 @@ const SavingsProgressCard = ({ rate }: { rate: number | null }) => {
         <h3 className="text-lg font-semibold text-coral-900 dark:text-white">Savings Progress</h3>
         <span className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">{savedPct}% SAVED</span>
       </div>
-      <div className="flex-1 flex flex-col justify-center">
-        <div className="h-3 w-full rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/10">
-          <div
-            className={`h-3 rounded-full transition-all duration-500 ${rate >= SAVINGS_GOAL_RATE ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-rose-500 to-red-500'}`}
-            style={{ width: `${goalProgressPct}%` }}
-          />
+      <div className="flex-1 flex flex-col justify-center space-y-5">
+        {/* Benchmark 20% savings rate */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-coral-600 dark:text-slate-400">20% Benchmark Goal</p>
+            <p className={`text-xs font-semibold ${rate >= SAVINGS_GOAL_RATE ? 'text-emerald-600' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'text-amber-600' : 'text-rose-600'}`}>
+              {rate >= SAVINGS_GOAL_RATE ? 'Excellent!' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'Good Progress' : 'Keep Going'}
+              {overUnderLabel}
+            </p>
+          </div>
+          <div className="h-3 w-full rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/10">
+            <div
+              className={`h-3 rounded-full transition-all duration-500 ${rate >= SAVINGS_GOAL_RATE ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-rose-500 to-red-500'}`}
+              style={{ width: `${goalProgressPct}%` }}
+            />
+          </div>
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-coral-600 dark:text-slate-400">Goal: {goalPct}%+ monthly savings</p>
-          <p className={`text-xs font-semibold ${rate >= SAVINGS_GOAL_RATE ? 'text-emerald-600' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'text-amber-600' : 'text-rose-600'}`}>
-            {rate >= SAVINGS_GOAL_RATE ? 'Excellent!' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'Good Progress' : 'Keep Going'}
-            {overUnderLabel}
-          </p>
-        </div>
+
+        {/* Custom user goals */}
+        {goalInsights?.goals?.map((goal) => (
+          <div key={goal.id}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-coral-600 dark:text-slate-400 truncate mr-2">{goal.name}</p>
+              <p className={`text-xs font-semibold whitespace-nowrap ${goal.progress.onTrack ? 'text-emerald-600' : 'text-amber-600'}`}>
+                {Math.round((goal.progress.progressPercent !== null 
+                  ? goal.progress.progressPercent 
+                  : (goal.monthlyTargetAmount ? (goal.progress.lastContribution || 0) / goal.monthlyTargetAmount : 0)
+                ) * 100)}%
+                {goal.progress.onTrack ? ' On Track' : ' Behind'}
+              </p>
+            </div>
+            <div className="h-3 w-full rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/10">
+              <div
+                className={`h-3 rounded-full transition-all duration-500 ${goal.progress.onTrack ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-amber-500 to-rose-500'}`}
+                style={{ 
+                  width: `${Math.min(100, Math.round((goal.progress.progressPercent !== null 
+                    ? goal.progress.progressPercent 
+                    : (goal.monthlyTargetAmount ? (goal.progress.lastContribution || 0) / goal.monthlyTargetAmount : 0)
+                  ) * 100))}%` 
+                }}
+              />
+            </div>
+            {goal.targetAmount !== null && (
+              <p className="mt-2 text-xs text-coral-700 dark:text-slate-300">
+                {currencyFormatter.format(goal.progress.totalContribution || 0)} of {currencyFormatter.format(goal.targetAmount)}
+                {goal.progress.estimatedCompletionMonth && ` • Est. ${goal.progress.estimatedCompletionMonth}`}
+              </p>
+            )}
+            {goal.monthlyTargetAmount !== null && (
+              <p className="mt-2 text-xs text-coral-700 dark:text-slate-300">
+                Target: {currencyFormatter.format(goal.monthlyTargetAmount)}/mo
+                {goal.progress.lastContribution !== null && ` • Last: ${currencyFormatter.format(goal.progress.lastContribution || 0)}`}
+              </p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -621,7 +664,7 @@ const Dashboard = () => {
                     <QuickStatsSection stats={quickStats} />
                   </div>
                   <div className="grid gap-6 lg:grid-cols-2 items-stretch">
-                    <SavingsProgressCard rate={summary.savingsRate} />
+                    <SavingsProgressCard rate={summary.savingsRate} goalInsights={summary.goalInsights} />
                     <SpendingTrendMiniChart recent={recent} />
                   </div>
                   {/* Recent months view removed */}

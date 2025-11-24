@@ -1,9 +1,30 @@
 import api from './api';
+import type { GoalProgressDetails } from './goalsService';
 
 export interface DashboardTopCategory {
   key: string;
   label: string;
   amount: number;
+}
+
+export interface DashboardGoal {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  targetAmount: number | null;
+  monthlyTargetAmount: number | null;
+  startMonthYear: string | null;
+  targetMonthYear: string | null;
+  progress: GoalProgressDetails;
+}
+
+export interface DashboardGoalInsights {
+  hasGoals: boolean;
+  totalGoals: number;
+  activeGoals: number;
+  primaryGoal: DashboardGoal | null;
+  goals: DashboardGoal[];
 }
 
 export interface DashboardSummary {
@@ -16,6 +37,10 @@ export interface DashboardSummary {
   financialHealthScore: number | null;
   topSpendingCategories: DashboardTopCategory[];
   meets_50_30_20_rule: boolean | null;
+  benchmarkSavingsRateGoal?: number;
+  userSavingsGoalMonthly?: number | null;
+  benchmarkMet?: boolean | null;
+  goalInsights?: DashboardGoalInsights;
   message?: string;
 }
 
