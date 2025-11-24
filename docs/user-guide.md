@@ -6,6 +6,7 @@ This guide walks through the current end-to-end experience for end users.
 1. Visit the deployed or local frontend (`http://localhost:5173`).
 2. From the Auth page, choose **Sign up** to create an account (first name, last name, email, phone, strong password).
 3. After confirming, log in via the same unified Auth page. The system stores your JWT token in storage so sessions persist between reloads.
+4. Forgot your password? Click **“Forgot your password?”** under the login form, enter your email, then follow the link we email you to set a new password.
 
 ## 2. Profile Setup
 - On first login you are redirected to the **Profile Setup** overlay.

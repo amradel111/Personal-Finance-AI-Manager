@@ -26,6 +26,7 @@ model User {
   profile       UserProfile?
   expenses      MonthlyExpense[]
   healthRecords FinancialHealth[]
+  resetTokens   PasswordResetToken[]
 
   @@map("users")
 }
@@ -150,4 +151,20 @@ model FinancialHealth {
 
   @@unique([userId, monthYear])
   @@map("financial_health")
+}
+
+// Password reset tokens
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("password_reset_tokens")
 }

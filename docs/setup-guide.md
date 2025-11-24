@@ -32,7 +32,18 @@ JWT_SECRET=replace-me
 JWT_EXPIRES_IN=7d
 PORT=5000
 CLIENT_URL=http://localhost:5173
+APP_BASE_URL=http://localhost:5173
+SMTP_HOST=<smtp-host>
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=<smtp-username>
+SMTP_PASS=<smtp-password>
+MAIL_FROM_NAME=SaveMate
+MAIL_FROM_EMAIL=no-reply@savemate.app
+RESET_TOKEN_EXPIRY_MINUTES=60
 ```
+
+`APP_BASE_URL` builds the password reset link. Configure the SMTP/MAIL fields with your email provider so the backend can deliver reset emails. In development you can point them to services like [Mailtrap](https://mailtrap.io) or leave them blank (emails will be skipped with a console warning).
 
 ### Frontend (`frontend/.env`)
 Copy from `.env.example`:

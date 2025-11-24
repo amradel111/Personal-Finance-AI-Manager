@@ -8,6 +8,8 @@ _All endpoints live under the base URL `http://localhost:5000/api` in developmen
 | --- | --- | --- |
 | POST | `/auth/signup` | Create a new user. Body fields: `email`, `password`, `firstName`, `lastName`, `phone`. Returns `user` summary + `token`. |
 | POST | `/auth/login` | Authenticate existing user. Body fields: `email`, `password`. Returns `user` summary + `token`. |
+| POST | `/auth/request-password-reset` | Public endpoint. Body `{ email }`. Always responds with success message; when the email exists the backend stores a short-lived token and sends the reset link. |
+| POST | `/auth/reset-password` | Public endpoint. Body `{ token, newPassword }`. Validates password strength and applies the reset if token is valid/unexpired. |
 | GET | `/auth/profile` | Fetch authenticated user record plus embedded profile (if it exists). |
 | GET | `/auth/check-profile` | Returns `{ hasProfile: boolean, profileComplete: boolean }`. Useful for first-login routing. |
 | PUT | `/auth/update-account` | Update the user email. Body: `{ email }`. |

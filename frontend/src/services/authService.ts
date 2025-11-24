@@ -35,6 +35,10 @@ export interface CheckProfileStatusResponse {
   hasProfile: boolean;
 }
 
+export interface PasswordResetResponse {
+  message: string;
+}
+
 /**
  * Sign up a new user
  */
@@ -78,10 +82,10 @@ export const logout = (): void => {
 };
 
 /**
- * Update user account (email)
+ * Update user account (email, firstName, lastName, phone)
  */
-export const updateAccount = async (email: string): Promise<{ message: string; user: UserProfile }> => {
-  const response = await api.put('/auth/update-account', { email });
+export const updateAccount = async (data: { email?: string; firstName?: string; lastName?: string; phone?: string }): Promise<{ message: string; user: UserProfile }> => {
+  const response = await api.put('/auth/update-account', data);
   return response.data;
 };
 
@@ -90,5 +94,15 @@ export const updateAccount = async (email: string): Promise<{ message: string; u
  */
 export const changePassword = async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
   const response = await api.put('/auth/change-password', { currentPassword, newPassword });
+  return response.data;
+};
+
+export const requestPasswordReset = async (email: string): Promise<PasswordResetResponse> => {
+  const response = await api.post('/auth/request-password-reset', { email });
+  return response.data;
+};
+
+export const resetPassword = async (token: string, newPassword: string): Promise<PasswordResetResponse> => {
+  const response = await api.post('/auth/reset-password', { token, newPassword });
   return response.data;
 };
