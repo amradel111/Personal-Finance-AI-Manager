@@ -56,9 +56,9 @@ const ScoreBadge = ({ score }: { score: number | undefined }) => {
 };
 
 const SectionCard = ({ children, title, right }: { children: React.ReactNode; title: string; right?: React.ReactNode }) => (
-  <div className="rounded-2xl border border-warmgray-300 bg-warmgray-50 px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-black/10 dark:border-white/10 dark:bg-white/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="text-lg font-semibold text-warmgray-900 dark:text-white">{title}</h3>
+  <div className="rounded-xl sm:rounded-2xl border border-warmgray-300 bg-warmgray-50 px-2 py-3 sm:px-6 sm:py-6 shadow-lg shadow-black/10 dark:border-white/10 dark:bg-white/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+    <div className="flex items-center justify-between mb-2 sm:mb-4">
+      <h3 className="text-sm sm:text-lg font-semibold text-warmgray-900 dark:text-white">{title}</h3>
       {right}
     </div>
     {children}
@@ -251,16 +251,16 @@ const MonthlyReport = () => {
       <div className="relative z-10 min-h-screen">
         <Header />
 
-        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 lg:pt-20 pb-16 space-y-6">
-          <div className="flex flex-col items-center gap-4 text-center">
+        <main className="w-full sm:mx-auto sm:max-w-7xl px-0 sm:px-6 lg:px-8 pt-20 lg:pt-20 pb-28 md:pb-16 space-y-2 sm:space-y-6">
+          <div className="flex flex-col items-center gap-3 md:gap-4 text-center">
             <div>
-              <h1 className="text-3xl font-bold text-warmgray-900 dark:text-white">Monthly Report</h1>
-              <p className="mt-1 text-sm text-warmgray-600 dark:text-slate-400">Detailed breakdown for your selected month</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-warmgray-900 dark:text-white">Monthly Report</h1>
+              <p className="mt-1 text-xs md:text-sm text-warmgray-600 dark:text-slate-400">Detailed breakdown for your selected month</p>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={onPrev} disabled={!canPrev} className="px-3 py-1.5 rounded-lg border border-warmgray-300 bg-white text-warmgray-700 text-xs font-semibold disabled:opacity-50 hover:bg-warmgray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Prev</button>
+              <button type="button" onClick={onPrev} disabled={!canPrev} className="px-3 py-2 md:py-1.5 rounded-lg border border-warmgray-300 bg-white text-warmgray-700 text-sm md:text-xs font-semibold disabled:opacity-50 hover:bg-warmgray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 active:scale-95 transition-transform">Prev</button>
               <select
-                className="px-3 py-1.5 rounded-lg border border-warmgray-300 bg-white text-warmgray-900 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
+                className="px-3 py-2 md:py-1.5 rounded-lg border border-warmgray-300 bg-white text-warmgray-900 text-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
                 value={selectedMonth ?? ''}
                 onChange={(e) => setSelectedMonth(e.target.value)}
               >
@@ -268,7 +268,7 @@ const MonthlyReport = () => {
                   <option key={opt.value} value={opt.value} className="bg-white text-warmgray-900 dark:bg-slate-900 dark:text-white">{opt.label}</option>
                 ))}
               </select>
-              <button type="button" onClick={onNext} disabled={!canNext} className="px-3 py-1.5 rounded-lg border border-warmgray-300 bg-white text-warmgray-700 text-xs font-semibold disabled:opacity-50 hover:bg-warmgray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Next</button>
+              <button type="button" onClick={onNext} disabled={!canNext} className="px-3 py-2 md:py-1.5 rounded-lg border border-warmgray-300 bg-white text-warmgray-700 text-sm md:text-xs font-semibold disabled:opacity-50 hover:bg-warmgray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 active:scale-95 transition-transform">Next</button>
             </div>
           </div>
 
@@ -285,13 +285,13 @@ const MonthlyReport = () => {
           )}
 
           {(historyLoading || loading) && (
-            <div className="space-y-6 animate-pulse">
+            <div className="space-y-2 sm:space-y-6 animate-pulse">
               <div className="h-24 rounded-2xl bg-white/10" />
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-2 sm:gap-6 lg:grid-cols-2">
                 <div className="h-72 rounded-2xl bg-white/10" />
                 <div className="h-72 rounded-2xl bg-white/10" />
               </div>
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid gap-2 sm:gap-6 lg:grid-cols-2">
                 <div className="h-72 rounded-2xl bg-white/10" />
                 <div className="h-72 rounded-2xl bg-white/10" />
               </div>
@@ -301,23 +301,23 @@ const MonthlyReport = () => {
           {!loading && report?.hasData && report.report && (
             <>
               <SectionCard title="Report Overview" right={<ScoreBadge score={report.assessment?.financialHealthScore} />}>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                    <p className="text-xs text-warmgray-700 dark:text-slate-400">Month</p>
-                    <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{formatMonth(report.report.monthYear)}</p>
+                <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                    <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Month</p>
+                    <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white">{formatMonth(report.report.monthYear)}</p>
                   </div>
-                  <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                    <p className="text-xs text-warmgray-700 dark:text-slate-400">Income</p>
-                    <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{formatCurrency(report.report.income)}</p>
+                  <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                    <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Income</p>
+                    <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white">{formatCurrency(report.report.income)}</p>
                   </div>
-                  <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                    <p className="text-xs text-warmgray-700 dark:text-slate-400">Expenses</p>
-                    <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{formatCurrency(report.report.totalExpenses)}</p>
+                  <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                    <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Expenses</p>
+                    <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white">{formatCurrency(report.report.totalExpenses)}</p>
                   </div>
-                  <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                    <p className="text-xs text-warmgray-700 dark:text-slate-400">Savings</p>
-                    <p className={`mt-2 text-xl font-semibold ${(report.report.savingsAmount ?? 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-warmgray-900 dark:text-white'}`}>
-                      {formatCurrency(report.report.savingsAmount)} <span className="text-warmgray-700 dark:text-slate-400 text-sm font-normal">({formatPercent(report.report.savingsRate)})</span>
+                  <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                    <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Savings</p>
+                    <p className={`mt-1 md:mt-2 text-base md:text-xl font-semibold ${(report.report.savingsAmount ?? 0) < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-warmgray-900 dark:text-white'}`}>
+                      {formatCurrency(report.report.savingsAmount)} <span className="text-warmgray-700 dark:text-slate-400 text-xs md:text-sm font-normal">({formatPercent(report.report.savingsRate)})</span>
                     </p>
                     {(() => {
                       const pct = Math.max(0, Math.min(100, Math.round((report.report.savingsRate || 0) * 100)));
@@ -332,10 +332,66 @@ const MonthlyReport = () => {
                 </div>
               </SectionCard>
 
-              <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+              <div className="grid gap-2 sm:gap-6 lg:grid-cols-2 items-stretch">
                 <SectionCard title="Spending by Category">
+                  {/* Mobile pie chart */}
                   <div
-                    className="flex items-center justify-center h-[350px] py-6"
+                    className="sm:hidden flex items-center justify-center h-[220px] py-2"
+                    onMouseLeave={() => {
+                      setActiveIndex(null);
+                      setHoverSource(null);
+                    }}
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryData}
+                          dataKey="amount"
+                          nameKey="label"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={35}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          labelLine={false}
+                          label={renderCategoryLabel}
+                          onMouseEnter={(_, index) => {
+                            setActiveIndex(index);
+                            setHoverSource('chart');
+                          }}
+                          onMouseLeave={() => {
+                            setActiveIndex(null);
+                            setHoverSource(null);
+                          }}
+                          animationBegin={0}
+                          animationDuration={800}
+                          animationEasing="ease-out"
+                          isAnimationActive={!hasAnimatedRef.current}
+                          onAnimationEnd={() => { hasAnimatedRef.current = true; }}
+                        >
+                          {categoryData.map((_, i) => (
+                            <Cell
+                              key={`cell-mobile-${i}`}
+                              fill={COLORS[i % COLORS.length]}
+                              stroke={activeIndex === i ? 'rgba(255, 255, 255, 0.5)' : 'rgba(15, 23, 42, 0.8)'}
+                              strokeWidth={activeIndex === i ? 3 : 2}
+                              opacity={activeIndex === null ? 1 : activeIndex === i ? 1 : 0.4}
+                              style={{
+                                filter: activeIndex === i
+                                  ? 'drop-shadow(0 0 8px rgba(96, 165, 250, 0.6))'
+                                  : 'none',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                cursor: 'pointer',
+                              }}
+                            />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Desktop pie chart */}
+                  <div
+                    className="hidden sm:flex items-center justify-center h-[350px] py-6"
                     onMouseLeave={() => {
                       setActiveIndex(null);
                       setHoverSource(null);
@@ -405,11 +461,11 @@ const MonthlyReport = () => {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="mt-4 space-y-3 max-h-[280px] overflow-y-auto overflow-x-hidden custom-scrollbar p-2">
+                  <div className="mt-2 sm:mt-4 space-y-1.5 sm:space-y-3 max-h-[180px] sm:max-h-[280px] overflow-y-auto overflow-x-hidden custom-scrollbar p-1 sm:p-2">
                     {categoryData.map((c, idx) => (
                       <div
                         key={c.key}
-                        className="flex items-center gap-3 rounded-lg bg-white/5 border border-white/10 px-3 py-2.5 hover:bg-white/10 transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-lg"
+                        className="flex items-center gap-2 sm:gap-3 rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 sm:px-3 sm:py-2.5 hover:bg-white/10 transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-lg"
                         onMouseEnter={() => {
                           setActiveIndex(idx);
                           setHoverSource('list');
@@ -424,15 +480,15 @@ const MonthlyReport = () => {
                         }}
                       >
                         <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
                           style={{ backgroundColor: COLORS[idx % COLORS.length] }}
                         />
-                        <span className="text-sm text-warmgray-700 dark:text-slate-200 flex-1">{c.label}</span>
-                        <div className="text-right">
-                          <div className="text-sm font-semibold text-warmgray-900 dark:text-white">
+                        <span className="text-[11px] sm:text-sm text-warmgray-700 dark:text-slate-200 flex-1 truncate">{c.label}</span>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-[11px] sm:text-sm font-semibold text-warmgray-900 dark:text-white">
                             {formatCurrency(c.amount)}
                           </div>
-                          <div className="text-xs text-warmgray-500 dark:text-slate-400">
+                          <div className="text-[9px] sm:text-xs text-warmgray-500 dark:text-slate-400">
                             {percentFormatter.format(c.percent)}
                           </div>
                         </div>
@@ -442,38 +498,38 @@ const MonthlyReport = () => {
                 </SectionCard>
 
                 <SectionCard title="Financial Health & Risks" right={<ScoreBadge score={report.assessment?.financialHealthScore} />}>
-                  <div className="grid gap-3 grid-cols-2">
-                    <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                      <p className="text-xs text-warmgray-700 dark:text-slate-400">Debt-to-Income</p>
-                      <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{formatPercent(report.report.debt.debtToIncomeRatio)}</p>
-                      <p className="text-[11px] mt-1 text-warmgray-700 dark:text-slate-500">Many lenders consider below ~36% a healthy range.</p>
+                  <div className="grid gap-2 md:gap-3 grid-cols-2">
+                    <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                      <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Debt-to-Income</p>
+                      <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white">{formatPercent(report.report.debt.debtToIncomeRatio)}</p>
+                      <p className="text-[9px] md:text-[11px] mt-1 text-warmgray-700 dark:text-slate-500 hidden md:block">Many lenders consider below ~36% a healthy range.</p>
                     </div>
-                    <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                      <p className="text-xs text-warmgray-700 dark:text-slate-400">Housing Cost Ratio</p>
-                      <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{formatPercent(report.report.housingCostRatio)}</p>
-                      <p className="text-[11px] mt-1 text-warmgray-700 dark:text-slate-500">Typical guideline: ~25–30% (slightly higher is common in urban areas).</p>
+                    <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                      <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Housing Cost Ratio</p>
+                      <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white">{formatPercent(report.report.housingCostRatio)}</p>
+                      <p className="text-[9px] md:text-[11px] mt-1 text-warmgray-700 dark:text-slate-500 hidden md:block">Typical guideline: ~25–30% (slightly higher is common in urban areas).</p>
                     </div>
-                    <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                      <p className="text-xs text-warmgray-700 dark:text-slate-400">Total Debt</p>
-                      <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{formatCurrency(report.report.debt.totalDebt)}</p>
+                    <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                      <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Total Debt</p>
+                      <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white">{formatCurrency(report.report.debt.totalDebt)}</p>
                     </div>
-                    <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                      <p className="text-xs text-warmgray-700 dark:text-slate-400">Monthly Debt Payments</p>
-                      <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{formatCurrency(report.report.debt.monthlyDebtPayments)}</p>
+                    <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                      <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Monthly Debt</p>
+                      <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white">{formatCurrency(report.report.debt.monthlyDebtPayments)}</p>
                     </div>
                   </div>
                   {/* Emergency Fund Indicator */}
-                  <div className="mt-4 grid gap-3 grid-cols-2">
-                    <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                      <p className="text-xs text-warmgray-700 dark:text-slate-400">Emergency Fund</p>
-                      <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white">{report.report.emergencyFundMonths ?? 0} months</p>
-                      <p className="text-xs mt-1 text-warmgray-700 dark:text-slate-400">{(report.report.emergencyFundMonths ?? 0) >= 3 ? 'Within typical 3–6 months guideline' : 'Below typical 3–6 months guideline'}</p>
+                  <div className="mt-3 md:mt-4 grid gap-2 md:gap-3 grid-cols-2">
+                    <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                      <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Emergency Fund</p>
+                      <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white">{report.report.emergencyFundMonths ?? 0} mo</p>
+                      <p className="text-[9px] md:text-xs mt-1 text-warmgray-700 dark:text-slate-400 hidden md:block">{(report.report.emergencyFundMonths ?? 0) >= 3 ? 'Within typical 3–6 months guideline' : 'Below typical 3–6 months guideline'}</p>
                     </div>
                     {report.assessment && (
-                      <div className="rounded-xl bg-white border border-warmgray-300 px-4 py-4 dark:bg-white/5 dark:border-white/10">
-                        <p className="text-xs text-warmgray-700 dark:text-slate-400">Attention Level</p>
-                        <p className="mt-2 text-xl font-semibold text-warmgray-900 dark:text-white capitalize">{report.assessment.optimizationPriority}</p>
-                        <p className="text-xs mt-1 text-warmgray-700 dark:text-slate-400">Attention score: {report.assessment.optimizationUrgency ?? 'N/A'}/10</p>
+                      <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
+                        <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Attention Level</p>
+                        <p className="mt-1 md:mt-2 text-base md:text-xl font-semibold text-warmgray-900 dark:text-white capitalize">{report.assessment.optimizationPriority}</p>
+                        <p className="text-[9px] md:text-xs mt-1 text-warmgray-700 dark:text-slate-400 hidden md:block">Attention score: {report.assessment.optimizationUrgency ?? 'N/A'}/10</p>
                       </div>
                     )}
                   </div>
@@ -525,9 +581,9 @@ const MonthlyReport = () => {
                 </SectionCard>
               )}
 
-              <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+              <div className="grid gap-2 sm:gap-6 lg:grid-cols-2 items-stretch">
                 <SectionCard title="Income vs Expenses">
-                  <div className="h-72 py-2">
+                  <div className="h-56 md:h-72 py-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={compareData}
@@ -597,7 +653,7 @@ const MonthlyReport = () => {
                     </span>
                   )}
                 >
-                  <div className="h-72 py-2">
+                  <div className="h-56 md:h-72 py-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={esVsDsData}
@@ -658,27 +714,27 @@ const MonthlyReport = () => {
               </div>
 
               {monthOverMonth && (
-                <SectionCard title="Month-over-Month Change" right={monthOverMonth.previousMonth ? <span className="text-xs text-slate-400">vs {formatMonth(monthOverMonth.previousMonth)}</span> : null}>
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                      <p className="text-xs text-slate-400">Expense Change</p>
-                      <p className="mt-2 text-xl font-semibold text-white">{formatSignedCurrency(monthOverMonth.expenseDelta)}</p>
+                <SectionCard title="Month-over-Month Change" right={monthOverMonth.previousMonth ? <span className="text-[10px] md:text-xs text-slate-400">vs {formatMonth(monthOverMonth.previousMonth)}</span> : null}>
+                  <div className="grid gap-2 md:gap-4 grid-cols-3">
+                    <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                      <p className="text-[9px] md:text-xs text-slate-400">Expense</p>
+                      <p className="mt-1 md:mt-2 text-sm md:text-xl font-semibold text-white">{formatSignedCurrency(monthOverMonth.expenseDelta)}</p>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                      <p className="text-xs text-slate-400">Savings Change</p>
-                      <p className="mt-2 text-xl font-semibold text-white">{formatSignedCurrency(monthOverMonth.savingsDelta)}</p>
+                    <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                      <p className="text-[9px] md:text-xs text-slate-400">Savings</p>
+                      <p className="mt-1 md:mt-2 text-sm md:text-xl font-semibold text-white">{formatSignedCurrency(monthOverMonth.savingsDelta)}</p>
                     </div>
-                    <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                      <p className="text-xs text-slate-400">Spending vs Last Month</p>
-                      <p className="mt-2 text-xl font-semibold text-white">{formatSignedPercent((monthOverMonth.spendingVsLastMonthPercentage ?? null) !== null ? (monthOverMonth.spendingVsLastMonthPercentage ?? 0) / 100 : null)}</p>
+                    <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                      <p className="text-[9px] md:text-xs text-slate-400">vs Last</p>
+                      <p className="mt-1 md:mt-2 text-sm md:text-xl font-semibold text-white">{formatSignedPercent((monthOverMonth.spendingVsLastMonthPercentage ?? null) !== null ? (monthOverMonth.spendingVsLastMonthPercentage ?? 0) / 100 : null)}</p>
                     </div>
                   </div>
                 </SectionCard>
               )}
 
               {trendChartData.length > 0 && (
-                <SectionCard title="Expense & Savings Trend" right={<span className="text-xs text-slate-400">Last {trendChartData.length} months</span>}>
-                  <div className="h-80 py-3">
+                <SectionCard title="Expense & Savings Trend" right={<span className="text-[10px] md:text-xs text-slate-400">Last {trendChartData.length} mo</span>}>
+                  <div className="h-60 md:h-80 py-2 md:py-3">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={trendChartData} margin={{ top: 15, right: 30, left: 10, bottom: 15 }}>
                         <CartesianGrid strokeDasharray="4 8" stroke="rgba(148,163,184,0.2)" />
@@ -695,18 +751,18 @@ const MonthlyReport = () => {
                     </ResponsiveContainer>
                   </div>
                   {trendStats && (
-                    <div className="mt-6 grid gap-4 md:grid-cols-3">
-                      <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                        <p className="text-xs text-slate-400">Avg Monthly Expenses</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{formatCurrency(trendStats.avgMonthlyExpenses)}</p>
+                    <div className="mt-4 md:mt-6 grid gap-2 md:gap-4 grid-cols-3">
+                      <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                        <p className="text-[9px] md:text-xs text-slate-400">Avg Expenses</p>
+                        <p className="mt-1 md:mt-2 text-sm md:text-xl font-semibold text-white">{formatCurrency(trendStats.avgMonthlyExpenses)}</p>
                       </div>
-                      <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                        <p className="text-xs text-slate-400">Avg Savings Rate</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{formatPercent(trendStats.avgSavingsRate)}</p>
+                      <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                        <p className="text-[9px] md:text-xs text-slate-400">Avg Savings</p>
+                        <p className="mt-1 md:mt-2 text-sm md:text-xl font-semibold text-white">{formatPercent(trendStats.avgSavingsRate)}</p>
                       </div>
-                      <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                        <p className="text-xs text-slate-400">Total Savings (period)</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{formatCurrency(trendStats.totalSavings)}</p>
+                      <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                        <p className="text-[9px] md:text-xs text-slate-400">Total Saved</p>
+                        <p className="mt-1 md:mt-2 text-sm md:text-xl font-semibold text-white">{formatCurrency(trendStats.totalSavings)}</p>
                       </div>
                     </div>
                   )}
@@ -715,7 +771,7 @@ const MonthlyReport = () => {
 
               {healthScoreLineData.length > 0 && (
                 <SectionCard title="Financial Health Timeline">
-                  <div className="h-64 py-3">
+                  <div className="h-48 md:h-64 py-2 md:py-3">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={healthScoreLineData} margin={{ top: 15, right: 40, left: 10, bottom: 15 }}>
                         <CartesianGrid strokeDasharray="4 8" stroke="rgba(148,163,184,0.2)" />
@@ -730,18 +786,18 @@ const MonthlyReport = () => {
                     </ResponsiveContainer>
                   </div>
                   {trendStats && (
-                    <div className="mt-6 grid gap-4 md:grid-cols-3">
-                      <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                        <p className="text-xs text-slate-400">Avg Health Score</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{trendStats.avgFinancialHealthScore !== null ? Math.round(trendStats.avgFinancialHealthScore) : '—'}</p>
+                    <div className="mt-4 md:mt-6 grid gap-2 md:gap-4 grid-cols-3">
+                      <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                        <p className="text-[9px] md:text-xs text-slate-400">Avg Health Score</p>
+                        <p className="mt-1 md:mt-2 text-sm md:text-xl font-semibold text-white">{trendStats.avgFinancialHealthScore !== null ? Math.round(trendStats.avgFinancialHealthScore) : '—'}</p>
                       </div>
-                      <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                        <p className="text-xs text-slate-400">Score Range</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{trendStats.highestFinancialHealthScore !== null && trendStats.lowestFinancialHealthScore !== null ? `${trendStats.lowestFinancialHealthScore} – ${trendStats.highestFinancialHealthScore}` : '—'}</p>
+                      <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                        <p className="text-[9px] md:text-xs text-slate-400">Score Range</p>
+                        <p className="mt-1 md:mt-2 text-sm md:text-xl font-semibold text-white">{trendStats.highestFinancialHealthScore !== null && trendStats.lowestFinancialHealthScore !== null ? `${trendStats.lowestFinancialHealthScore} – ${trendStats.highestFinancialHealthScore}` : '—'}</p>
                       </div>
-                      <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-4">
-                        <p className="text-xs text-slate-400">Most Challenging Month</p>
-                        <p className="mt-2 text-xl font-semibold text-white">{trendStats.mostChallengingMonth ? formatMonth(trendStats.mostChallengingMonth.monthYear) : '—'}</p>
+                      <div className="rounded-lg md:rounded-xl bg-white/5 border border-white/10 px-2.5 py-2.5 md:px-4 md:py-4">
+                        <p className="text-[9px] md:text-xs text-slate-400">Most Challenging Month</p>
+                        <p className="mt-1 md:mt-2 text-xs md:text-xl font-semibold text-white truncate">{trendStats.mostChallengingMonth ? formatMonth(trendStats.mostChallengingMonth.monthYear) : '—'}</p>
                       </div>
                     </div>
                   )}
@@ -750,7 +806,7 @@ const MonthlyReport = () => {
 
               {(categoryInsights?.topIncreases?.length ?? 0) + (categoryInsights?.topDecreases?.length ?? 0) > 0 && (
                 <SectionCard title="Category Insights">
-                  <div className="grid gap-6 md:grid-cols-2">
+                  <div className="grid gap-2 sm:gap-6 md:grid-cols-2">
                     <div>
                       <p className="text-sm font-semibold text-white mb-3">Top Increases</p>
                       <div className="space-y-2">

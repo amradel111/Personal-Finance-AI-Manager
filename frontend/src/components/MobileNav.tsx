@@ -74,9 +74,9 @@ const MobileNav = () => {
   const currentPath = location.pathname;
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/70 dark:border-slate-800/70 backdrop-blur-lg shadow-[0_-8px_24px_rgba(15,23,42,0.18)]">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/70 dark:border-slate-800/70 backdrop-blur-lg shadow-[0_-8px_24px_rgba(15,23,42,0.18)] safe-area-bottom">
       <div className="mx-auto max-w-xl px-4">
-        <ul className="flex items-center justify-between py-3">
+        <ul className="flex items-center justify-around py-2 pb-3">
           {navItems.map((item) => {
             const isActive = item.matchers
               ? item.matchers.some((matcher) => currentPath.startsWith(matcher))
@@ -86,8 +86,10 @@ const MobileNav = () => {
                 <button
                   type="button"
                   onClick={() => handleNavigate(item.path)}
-                  className={`flex flex-col items-center gap-1 text-xs font-semibold transition ${
-                    isActive ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400'
+                  className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 active:scale-95 ${
+                    isActive 
+                      ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' 
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                   aria-current={isActive ? 'page' : undefined}
                 >

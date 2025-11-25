@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom utilities */
+@layer utilities {
+  .border-3 {
+    border-width: 3px;
+  }
+}
+
 /* Custom styles */
 body {
   margin: 0;
@@ -28,12 +35,15 @@ code {
   0% {
     transform: translate(0px, 0px) scale(1);
   }
+
   33% {
     transform: translate(30px, -50px) scale(1.1);
   }
+
   66% {
     transform: translate(-20px, 20px) scale(0.9);
   }
+
   100% {
     transform: translate(0px, 0px) scale(1);
   }
@@ -74,4 +84,19 @@ code {
 .recharts-wrapper:focus,
 .recharts-wrapper *:focus {
   outline: none;
+}
+
+/* Safe area padding for mobile devices with notches/home indicators */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Mobile touch-friendly tap targets */
+@media (max-width: 767px) {
+
+  button,
+  a,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
 }

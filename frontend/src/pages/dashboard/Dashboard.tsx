@@ -73,15 +73,15 @@ const toneClassMap: Record<NonNullable<QuickStat['tone']>, string> = {
 // Header is now shared via ../../components/Header
 
 const StatCard = ({ title, value, subtext }: { title: string; value: string; subtext?: string }) => (
-  <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-    <p className="text-sm font-medium text-coral-700 dark:text-slate-300">{title}</p>
-    <p className="mt-3 text-2xl sm:text-3xl font-semibold text-coral-900 dark:text-white">{value}</p>
-    {subtext && <p className="mt-1 text-xs text-coral-600 dark:text-slate-400">{subtext}</p>}
+  <div className="rounded-xl sm:rounded-2xl border border-coral-200 bg-white px-2.5 py-3 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+    <p className="text-[10px] sm:text-sm font-medium text-coral-700 dark:text-slate-300">{title}</p>
+    <p className="mt-1 sm:mt-3 text-lg sm:text-3xl font-semibold text-coral-900 dark:text-white">{value}</p>
+    {subtext && <p className="mt-0.5 sm:mt-1 text-[9px] sm:text-xs text-coral-600 dark:text-slate-400">{subtext}</p>}
   </div>
 );
 
 const SummaryGrid = ({ summary }: { summary: DashboardSummary }) => (
-  <div className="grid gap-4 sm:gap-6 grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-2 xl:grid-cols-4">
+  <div className="grid gap-2 sm:gap-6 grid-cols-2 xl:grid-cols-4">
     <StatCard title="Monthly Income" value={formatCurrency(summary.totalIncome)} />
     <StatCard title="Monthly Expenses" value={formatCurrency(summary.totalExpenses)} />
     <StatCard
@@ -110,27 +110,27 @@ const TopCategoriesList = ({ categories, totalExpenses }: { categories: Dashboar
   const topShare = safeTotal ? topTotal / safeTotal : null;
 
   return (
-    <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 h-full flex flex-col dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-coral-900 dark:text-white">Top Spending Categories</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-coral-600 dark:text-slate-400">LATEST MONTH</span>
+    <div className="rounded-xl sm:rounded-2xl border border-coral-200 bg-white px-2.5 py-3 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 h-full flex flex-col dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+      <div className="flex items-center justify-between mb-2 sm:mb-4">
+        <h3 className="text-sm sm:text-lg font-semibold text-coral-900 dark:text-white">Top Spending Categories</h3>
+        <span className="text-[8px] sm:text-xs font-semibold uppercase tracking-wide text-coral-600 dark:text-slate-400">LATEST MONTH</span>
       </div>
-      <ul className="space-y-3 flex-1">
+      <ul className="space-y-1.5 sm:space-y-3 flex-1">
         {withShare.map((item) => (
           <li
             key={item.key}
-            className="rounded-xl border border-coral-200 bg-peach-50 px-4 py-2.5 hover:bg-peach-100 transition-colors dark:border-white/5 dark:bg-white/5 dark:hover:bg-white/10"
+            className="rounded-lg sm:rounded-xl border border-coral-200 bg-peach-50 px-2 py-1.5 sm:px-4 sm:py-2.5 hover:bg-peach-100 transition-colors dark:border-white/5 dark:bg-white/5 dark:hover:bg-white/10"
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-coral-900 truncate mr-3 dark:text-slate-100">{item.label}</span>
-              <span className="text-sm font-semibold text-coral-900 whitespace-nowrap dark:text-white">{formatCurrency(item.amount)}</span>
+              <span className="text-[11px] sm:text-sm font-medium text-coral-900 truncate mr-2 sm:mr-3 dark:text-slate-100">{item.label}</span>
+              <span className="text-[11px] sm:text-sm font-semibold text-coral-900 whitespace-nowrap dark:text-white">{formatCurrency(item.amount)}</span>
             </div>
             {item.share !== null && (
-              <div className="mt-1 flex items-center justify-between text-[11px] text-coral-600 dark:text-slate-400">
+              <div className="mt-0.5 sm:mt-1 flex items-center justify-between text-[9px] sm:text-[11px] text-coral-600 dark:text-slate-400">
                 <span>{formatPercent(item.share)} of monthly spending</span>
-                <div className="flex-1 ml-3 h-1.5 rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/5">
+                <div className="flex-1 ml-1.5 sm:ml-3 h-1 sm:h-1.5 rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/5">
                   <div
-                    className="h-1.5 rounded-full bg-gradient-to-r from-teal-500 to-emerald-500"
+                    className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-500"
                     style={{ width: `${Math.max(4, Math.min(100, Math.round(item.share * 100)))}%` }}
                   />
                 </div>
@@ -140,7 +140,7 @@ const TopCategoriesList = ({ categories, totalExpenses }: { categories: Dashboar
         ))}
       </ul>
       {topShare !== null && (
-        <div className="pt-3 mt-1 border-t border-coral-200 text-[11px] text-coral-600 flex items-center justify-between dark:border-white/5 dark:text-slate-400">
+        <div className="pt-1.5 sm:pt-3 mt-1 border-t border-coral-200 text-[9px] sm:text-[11px] text-coral-600 flex items-center justify-between dark:border-white/5 dark:text-slate-400">
           <span>
             Top {categories.length} categories account for{' '}
             <span className="font-semibold text-coral-900 dark:text-slate-200">{formatPercent(topShare)}</span> of your spending.
@@ -154,17 +154,17 @@ const TopCategoriesList = ({ categories, totalExpenses }: { categories: Dashboar
 const QuickStatsSection = ({ stats }: { stats: QuickStat[] }) => {
   if (!stats.length) return null;
   return (
-    <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-      <h3 className="text-lg font-semibold text-coral-900 mb-4 dark:text-white">Quick Insights</h3>
-      <div className="grid gap-3 grid-cols-2">
+    <div className="rounded-xl sm:rounded-2xl border border-coral-200 bg-white px-2.5 py-3 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+      <h3 className="text-sm sm:text-lg font-semibold text-coral-900 mb-2 sm:mb-4 dark:text-white">Quick Insights</h3>
+      <div className="grid gap-1.5 sm:gap-3 grid-cols-2">
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-xl bg-peach-50 border border-coral-200 px-4 py-4 dark:bg-peach-50/5 dark:border-white/5"
+            className="rounded-lg sm:rounded-xl bg-peach-50 border border-coral-200 px-2 py-2 sm:px-4 sm:py-4 dark:bg-peach-50/5 dark:border-white/5"
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">{stat.label}</p>
-            <p className={`mt-2 text-xl font-semibold ${stat.tone ? toneClassMap[stat.tone] : 'text-coral-900 dark:text-white'}`}>{stat.value}</p>
-            {stat.detail && <p className="mt-1 text-xs text-coral-700 dark:text-slate-300">{stat.detail}</p>}
+            <p className="text-[8px] sm:text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">{stat.label}</p>
+            <p className={`mt-0.5 sm:mt-2 text-sm sm:text-xl font-semibold ${stat.tone ? toneClassMap[stat.tone] : 'text-coral-900 dark:text-white'}`}>{stat.value}</p>
+            {stat.detail && <p className="mt-0.5 sm:mt-1 text-[8px] sm:text-xs text-coral-700 dark:text-slate-300 hidden sm:block">{stat.detail}</p>}
           </div>
         ))}
       </div>
@@ -188,24 +188,24 @@ const SavingsProgressCard = ({ rate, goalInsights }: { rate: number | null; goal
   const overUnderLabel = overUnder > 0 ? ` (+${overUnder}% above goal)` : overUnder < 0 ? ` (${Math.abs(overUnder)}% below goal)` : '';
 
   return (
-    <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 flex flex-col dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-coral-900 dark:text-white">Savings Progress</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">{savedPct}% SAVED</span>
+    <div className="rounded-xl sm:rounded-2xl border border-coral-200 bg-white px-2.5 py-3 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 flex flex-col dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+      <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+        <h3 className="text-sm sm:text-lg font-semibold text-coral-900 dark:text-white">Savings Progress</h3>
+        <span className="text-[8px] sm:text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">{savedPct}% SAVED</span>
       </div>
-      <div className="flex-1 flex flex-col justify-center space-y-5">
+      <div className="flex-1 flex flex-col justify-center space-y-3 sm:space-y-5">
         {/* Benchmark 20% savings rate */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium text-coral-600 dark:text-slate-400">20% Benchmark Goal</p>
-            <p className={`text-xs font-semibold ${rate >= SAVINGS_GOAL_RATE ? 'text-emerald-600' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'text-amber-600' : 'text-rose-600'}`}>
+          <div className="flex items-center justify-between mb-1 sm:mb-2">
+            <p className="text-[8px] sm:text-xs font-medium text-coral-600 dark:text-slate-400">20% Benchmark Goal</p>
+            <p className={`text-[8px] sm:text-xs font-semibold ${rate >= SAVINGS_GOAL_RATE ? 'text-emerald-600' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'text-amber-600' : 'text-rose-600'}`}>
               {rate >= SAVINGS_GOAL_RATE ? 'Excellent!' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'Good Progress' : 'Keep Going'}
-              {overUnderLabel}
+              <span className="hidden sm:inline">{overUnderLabel}</span>
             </p>
           </div>
-          <div className="h-3 w-full rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/10">
+          <div className="h-2 sm:h-3 w-full rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/10">
             <div
-              className={`h-3 rounded-full transition-all duration-500 ${rate >= SAVINGS_GOAL_RATE ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-rose-500 to-red-500'}`}
+              className={`h-full rounded-full transition-all duration-500 ${rate >= SAVINGS_GOAL_RATE ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : rate >= SAVINGS_GOAL_RATE * 0.5 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-rose-500 to-red-500'}`}
               style={{ width: `${goalProgressPct}%` }}
             />
           </div>
@@ -322,14 +322,14 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
   }));
 
   return (
-    <div className="rounded-2xl border border-coral-200 bg-white px-4 py-5 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-coral-900 dark:text-white">Spending Trend</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">LAST {last.length} MONTHS</span>
+    <div className="rounded-xl sm:rounded-2xl border border-coral-200 bg-white px-2.5 py-3 sm:px-6 sm:py-6 shadow-lg shadow-coral-900/10 dark:border-white/10 dark:bg-peach-50/5 dark:backdrop-blur dark:shadow-[0_20px_45px_-25px_rgba(15,23,42,0.9)]">
+      <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+        <h3 className="text-sm sm:text-lg font-semibold text-coral-900 dark:text-white">Spending Trend</h3>
+        <span className="text-[8px] sm:text-xs font-semibold uppercase tracking-wide text-coral-700 dark:text-slate-400">LAST {last.length} MONTHS</span>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-2 sm:space-y-4">
         <div
-          className="h-48 w-full -ml-2"
+          className="h-36 sm:h-48 w-full -ml-2"
           ref={chartRef}
           onPointerLeave={hideChartFocus}
         >
@@ -631,7 +631,7 @@ const Dashboard = () => {
       <div className="relative z-10 min-h-screen">
         <Header />
 
-        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-24 lg:pt-20 pb-16 space-y-6">
+        <main className="w-full sm:mx-auto sm:max-w-7xl px-0 sm:px-6 lg:px-8 pt-20 lg:pt-20 pb-24 md:pb-16 space-y-2 sm:space-y-6">
           <div className="flex items-center justify-end">
             <button
               type="button"
@@ -657,13 +657,13 @@ const Dashboard = () => {
               {isLoadingData && !summary && <LoadingSkeleton />}
 
               {!isLoadingData && summary && summary.hasExpensesData && (
-                <div className="space-y-6">
+                <div className="space-y-2 sm:space-y-6">
                   <SummaryGrid summary={summary} />
-                  <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+                  <div className="grid gap-2 sm:gap-6 lg:grid-cols-2 items-stretch">
                     <TopCategoriesList categories={summary.topSpendingCategories} totalExpenses={summary.totalExpenses} />
                     <QuickStatsSection stats={quickStats} />
                   </div>
-                  <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+                  <div className="grid gap-2 sm:gap-6 lg:grid-cols-2 items-stretch">
                     <SavingsProgressCard rate={summary.savingsRate} goalInsights={summary.goalInsights} />
                     <SpendingTrendMiniChart recent={recent} />
                   </div>

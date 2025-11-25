@@ -18,11 +18,11 @@ import MonthPicker, { type MonthString } from '../../components/MonthPicker';
 import { fetchGoals, createGoal, updateGoal, deleteGoal } from '../../services/goalsService';
 
 const numberInputClass = (hasError: boolean) =>
-  `w-full bg-white border border-warmgray-300 rounded-md px-4 py-3 text-warmgray-900 text-sm transition focus:outline-none focus:ring-2 ${
+  `w-full bg-white border border-warmgray-300 rounded-lg px-4 py-3.5 md:py-3 text-warmgray-900 text-base md:text-sm transition focus:outline-none focus:ring-2 ${
     hasError ? 'ring-2 ring-rose-500' : 'focus:ring-emerald-500 dark:focus:ring-slate-500'
   } dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100`;
 
-const sectionsClass = 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start';
+const sectionsClass = 'grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 items-start';
 const labelClass = 'text-sm md:text-base font-semibold text-warmgray-900 dark:text-slate-100';
 const fieldWrapperClass = 'space-y-2';
 const previewCardClass =
@@ -314,10 +314,10 @@ const ProfileSetup = () => {
       <div className="relative z-10 min-h-screen">
         <Header />
 
-        <main className="px-4 sm:px-6 lg:px-8 pt-28 pb-16">
+        <main className="w-full sm:mx-auto sm:max-w-7xl px-0 sm:px-6 lg:px-8 pt-20 pb-28 md:pb-16">
           <div className="flex items-start md:items-center justify-center">
-            <div className="relative bg-white dark:bg-slate-900/90 rounded-2xl shadow-2xl overflow-hidden w-full max-w-5xl transition-all duration-700 backdrop-blur-sm border border-warmgray-200/60 dark:border-slate-800/80">
-              <div className="px-6 md:px-10 py-8 md:py-10">
+            <div className="relative bg-white dark:bg-slate-900/90 rounded-lg sm:rounded-2xl shadow-2xl overflow-hidden w-full max-w-5xl transition-all duration-700 backdrop-blur-sm border border-warmgray-200/60 dark:border-slate-800/80">
+              <div className="px-3 py-5 sm:px-6 md:px-10 sm:py-8 md:py-10">
                 <h1 className="text-2xl md:text-3xl font-bold text-warmgray-900 dark:text-white">Profile Setup</h1>
                 <p className="text-warmgray-600 dark:text-slate-300 text-sm mt-1">Tell us about your household and finances to personalize insights.</p>
 

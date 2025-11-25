@@ -107,7 +107,7 @@ const EditAccount = () => {
             <div className="relative z-10">
                 <Header />
 
-                <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 pt-24 lg:pt-28 pb-20">
+                <main className="mx-auto max-w-4xl px-2 sm:px-6 lg:px-8 pt-20 lg:pt-28 pb-28 md:pb-20">
                     {/* Header Section */}
                     <div className="mb-8">
                         <button

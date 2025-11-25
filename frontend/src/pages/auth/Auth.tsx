@@ -239,12 +239,255 @@ const AuthPage = () => {
 
       {/* Brand header removed to avoid overlap at common laptop zoom levels */}
 
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-16">
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-8 md:py-16">
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-wide">SaveMate</h1>
         </div>
+        
+        {/* Mobile Layout - Stacked forms with toggle */}
+        <div className="md:hidden w-full max-w-md">
+          {!isSignUpMode ? (
+            /* Mobile Sign In Form */
+            <div className="bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] p-6 animate-in fade-in duration-300">
+              <form
+                onSubmit={handleLoginSubmit}
+                noValidate
+                aria-busy={isLoginSubmitting}
+                className="flex flex-col items-center"
+              >
+                <h1 className="text-2xl font-bold text-slate-900 mb-4">Sign In</h1>
+
+                {loginFormError && (
+                  <div
+                    className="w-full mb-4 rounded-md bg-rose-50 border border-rose-200 px-4 py-2 text-sm text-rose-600"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    {loginFormError}
+                  </div>
+                )}
+
+                <span className="text-xs text-slate-500 mb-4">Use your account credentials</span>
+
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className={getInputClassName(Boolean(loginErrors.email))}
+                  name="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  required
+                  aria-invalid={Boolean(loginErrors.email)}
+                />
+                {loginErrors.email && (
+                  <p className="w-full text-left text-xs text-rose-600 mt-1">• {loginErrors.email}</p>
+                )}
+
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className={`${getInputClassName(Boolean(loginErrors.password))} mt-3`}
+                  name="current-password"
+                  autoComplete="current-password"
+                  autoCapitalize="off"
+                  spellCheck={false}
+                  required
+                  aria-invalid={Boolean(loginErrors.password)}
+                />
+                {loginErrors.password && (
+                  <p className="w-full text-left text-xs text-rose-600 mt-1">• {loginErrors.password}</p>
+                )}
+
+                <label className="flex items-center text-xs text-slate-600 mt-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="mr-2 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+                  />
+                  Remember me
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-xs text-slate-600 hover:text-slate-900 mt-3"
+                >
+                  Forgot your password?
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isLoginSubmitting}
+                  className="mt-6 w-full rounded-full border border-slate-900 bg-slate-900 text-white text-sm font-bold px-8 py-3 uppercase tracking-wider transition-transform hover:scale-[0.98] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+                >
+                  {isLoginSubmitting ? 'Signing In...' : 'Sign In'}
+                </button>
+              </form>
+
+              <div className="mt-6 pt-6 border-t border-slate-200 text-center">
+                <p className="text-sm text-slate-600 mb-3">New here?</p>
+                <button
+                  type="button"
+                  onClick={() => setIsSignUpMode(true)}
+                  className="w-full rounded-full border-2 border-violet-600 bg-gradient-to-r from-blue-600 to-violet-600 text-white text-sm font-bold px-8 py-3 uppercase tracking-wider transition-transform hover:scale-[0.98] active:scale-95"
+                >
+                  Create Account
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Mobile Sign Up Form */
+            <div className="bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] p-6 animate-in fade-in duration-300">
+              <form
+                onSubmit={handleSignupSubmit}
+                noValidate
+                aria-busy={isSignupSubmitting}
+                className="flex flex-col items-center"
+              >
+                <h1 className="text-2xl font-bold text-slate-900 mb-4">Create Account</h1>
+
+                {signupFormError && (
+                  <div
+                    className="w-full mb-4 rounded-md bg-rose-50 border border-rose-200 px-4 py-2 text-sm text-rose-600"
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    {signupFormError}
+                  </div>
+                )}
+
+                {signupSuccess && (
+                  <div
+                    className="w-full mb-4 rounded-md bg-emerald-50 border border-emerald-200 px-4 py-2 text-sm text-emerald-600"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {signupSuccess}
+                  </div>
+                )}
+
+                <span className="text-xs text-slate-500 mb-4">Use your email for registration</span>
+
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  value={signupFullName}
+                  onChange={(e) => setSignupFullName(e.target.value)}
+                  className={getInputClassName(Boolean(signupErrors.fullName))}
+                  name="name"
+                  autoComplete="name"
+                  required
+                  aria-invalid={Boolean(signupErrors.fullName)}
+                />
+                {signupErrors.fullName && (
+                  <p className="w-full text-left text-xs text-rose-600 mt-1">• {signupErrors.fullName}</p>
+                )}
+
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  className={`${getInputClassName(Boolean(signupErrors.email))} mt-3`}
+                  name="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  required
+                  aria-invalid={Boolean(signupErrors.email)}
+                />
+                {signupErrors.email && (
+                  <p className="w-full text-left text-xs text-rose-600 mt-1">• {signupErrors.email}</p>
+                )}
+
+                <input
+                  type="tel"
+                  placeholder="Phone (e.g. +12025551234)"
+                  value={signupPhone}
+                  onChange={(e) => setSignupPhone(e.target.value)}
+                  className={`${getInputClassName(Boolean(signupErrors.phone))} mt-3`}
+                  name="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  required
+                  aria-invalid={Boolean(signupErrors.phone)}
+                />
+                {signupErrors.phone && (
+                  <p className="w-full text-left text-xs text-rose-600 mt-1">• {signupErrors.phone}</p>
+                )}
+
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  className={`${getInputClassName(Boolean(signupErrors.password))} mt-3`}
+                  name="new-password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                  aria-invalid={Boolean(signupErrors.password)}
+                />
+                {signupPassword && (
+                  <div className="w-full mt-2">
+                    <div className="h-1 w-full rounded-full bg-slate-200 overflow-hidden">
+                      <div
+                        className={`h-1 ${strengthColor} transition-all duration-300`}
+                        style={{ width: `${Math.max(strengthPercent, 20)}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">{passwordStrength.label}</p>
+                  </div>
+                )}
+
+                <input
+                  type="password"
+                  placeholder="Confirm Password"
+                  value={signupConfirmPassword}
+                  onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                  className={`${getInputClassName(Boolean(signupErrors.confirmPassword))} mt-3`}
+                  name="confirm-password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                  aria-invalid={Boolean(signupErrors.confirmPassword)}
+                />
+                {signupErrors.confirmPassword && (
+                  <p className="w-full text-left text-xs text-rose-600 mt-1">• {signupErrors.confirmPassword}</p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSignupSubmitting}
+                  className="mt-6 w-full rounded-full border border-slate-900 bg-slate-900 text-white text-sm font-bold px-8 py-3 uppercase tracking-wider transition-transform hover:scale-[0.98] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+                >
+                  {isSignupSubmitting ? 'Creating...' : 'Sign Up'}
+                </button>
+              </form>
+
+              <div className="mt-6 pt-6 border-t border-slate-200 text-center">
+                <p className="text-sm text-slate-600 mb-3">Already have an account?</p>
+                <button
+                  type="button"
+                  onClick={() => setIsSignUpMode(false)}
+                  className="w-full rounded-full border-2 border-slate-900 bg-white text-slate-900 text-sm font-bold px-8 py-3 uppercase tracking-wider transition-transform hover:scale-[0.98] active:scale-95"
+                >
+                  Sign In
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Layout - Original split panel design */}
         <div
-          className={`relative bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden w-full max-w-4xl min-h-[560px] transition-all duration-700 backdrop-blur-sm ${
+          className={`hidden md:block relative bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden w-full max-w-4xl min-h-[560px] transition-all duration-700 backdrop-blur-sm ${
             isSignUpMode ? 'right-panel-active' : ''
           }`}
         >

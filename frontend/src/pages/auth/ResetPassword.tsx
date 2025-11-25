@@ -86,11 +86,11 @@ const ResetPassword = () => {
         </div>
       </div>
 
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-16">
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 py-8 md:py-16">
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-wide">SaveMate</h1>
         </div>
-        <div className="w-full max-w-md bg-white text-slate-900 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] p-8">
+        <div className="w-full max-w-md bg-white text-slate-900 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] p-6 md:p-8">
           <button
             type="button"
             onClick={() => navigate('/auth')}
