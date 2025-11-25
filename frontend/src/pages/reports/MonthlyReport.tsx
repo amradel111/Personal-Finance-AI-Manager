@@ -210,9 +210,9 @@ const MonthlyReport = () => {
     if (!percent || percent < 0.08) return null;
 
     // Adjust positioning for better symmetry (0.55 instead of 0.6)
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    const radius = Number(innerRadius) + (Number(outerRadius) - Number(innerRadius)) * 0.55;
+    const x = Number(cx) + radius * Math.cos(-midAngle * RADIAN);
+    const y = Number(cy) + radius * Math.sin(-midAngle * RADIAN);
     const pctValue = percent * 100;
     const pct = pctValue >= 10 ? pctValue.toFixed(0) : pctValue.toFixed(1);
 
