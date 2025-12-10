@@ -4,10 +4,12 @@ import Header from '../../components/Header';
 import {
   getMonthlyReport,
   getReportHistory,
+  getAIInsights,
   type MonthlyReportResponse,
   type HistoryResponse,
   type CategoryItem,
   type TrendMonth,
+  type AIInsights,
 } from '../../services/reportsService';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, CartesianGrid } from 'recharts';
@@ -48,11 +50,11 @@ type CategoryTimelinePoint = {
 };
 
 
-const ScoreBadge = ({ score }: { score: number | undefined }) => {
+const ScoreBadge = ({ score, label }: { score: number | undefined; label?: string }) => {
   if (score === undefined || score === null) return null;
   const lightTone = score >= 80 ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : score >= 65 ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-rose-100 text-rose-700 border-rose-300';
   const darkTone = score >= 80 ? 'dark:bg-emerald-500/20 dark:text-emerald-200 dark:border-emerald-400/30' : score >= 65 ? 'dark:bg-amber-500/20 dark:text-amber-200 dark:border-amber-400/30' : 'dark:bg-rose-500/20 dark:text-rose-200 dark:border-rose-400/30';
-  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold border ${lightTone} ${darkTone}`}>Score {score}/100</span>;
+  return <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold border ${lightTone} ${darkTone}`}>{label ? `${label} ` : ''}Score {score}/100</span>;
 };
 
 const SectionCard = ({ children, title, right }: { children: React.ReactNode; title: string; right?: React.ReactNode }) => (
@@ -76,8 +78,28 @@ const MonthlyReport = () => {
   const [report, setReport] = useState<MonthlyReportResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiInsights, setAIInsights] = useState<AIInsights | null>(null);
   const hasAnimatedRef = useRef(false);
   const navigate = useNavigate();
+
+  // Fetch real-time AI insights once on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAI = async () => {
+      const insights = await getAIInsights();
+      if (isMounted) setAIInsights(insights);
+    };
+    void fetchAI();
+    return () => { isMounted = false; };
+  }, []);
+
+  // For ScoreBadge: Use stored AI score from DB for the selected month
+  // Real-time AI score is only as fallback for current month if no stored data
+  const storedAIScore = report?.report?.aiHealthScore;
+  const realTimeAIScore = aiInsights?.health?.score;
+  // Prioritize stored DB score (per-month), fallback to real-time only if stored is null
+  const displayScore = storedAIScore ?? realTimeAIScore ?? report?.assessment?.financialHealthScore;
+  const scoreLabel = (storedAIScore ?? realTimeAIScore) !== null && (storedAIScore ?? realTimeAIScore) !== undefined ? 'AI' : undefined;
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -167,11 +189,34 @@ const MonthlyReport = () => {
     savings: m.savingsAmount,
   })), [trendMonths]);
 
-  const healthScoreLineData = useMemo(() => trendMonths.map((m) => ({
-    month: formatMonth(m.monthYear),
-    score: m.assessment?.financialHealthScore ?? null,
-    stressLevel: m.assessment?.financialStressLevel ?? null,
-  })), [trendMonths]);
+  // For timeline: Use stored AI scores, but for the LATEST month, use real-time AI score
+  // This ensures the most recent data point matches what's displayed in the ScoreBadge
+  const healthScoreLineData = useMemo(() => {
+    const lastMonthIndex = trendMonths.length - 1;
+    return trendMonths.map((m, index) => {
+      // For the latest month, use real-time AI score if available
+      const isLatestMonth = index === lastMonthIndex;
+      const effectiveAIScore = isLatestMonth
+        ? (realTimeAIScore ?? m.aiHealthScore)
+        : m.aiHealthScore;
+
+      return {
+        month: formatMonth(m.monthYear),
+        // Use AI score if available, otherwise assessment score
+        score: effectiveAIScore ?? m.assessment?.financialHealthScore ?? null,
+        aiScore: effectiveAIScore ?? null,
+        assessmentScore: m.assessment?.financialHealthScore ?? null,
+        stressLevel: m.assessment?.financialStressLevel ?? null,
+        hasAIScore: effectiveAIScore !== null && effectiveAIScore !== undefined,
+      };
+    });
+  }, [trendMonths, realTimeAIScore]);
+
+  // Check if any month has AI scores (stored or real-time for latest)
+  const hasAnyAIScores = useMemo(() =>
+    trendMonths.some(m => m.aiHealthScore !== null) || realTimeAIScore !== undefined,
+    [trendMonths, realTimeAIScore]
+  );
 
   const [selectedCategoryKey, setSelectedCategoryKey] = useState<string | null>(null);
 
@@ -300,7 +345,7 @@ const MonthlyReport = () => {
 
           {!loading && report?.hasData && report.report && (
             <>
-              <SectionCard title="Report Overview" right={<ScoreBadge score={report.assessment?.financialHealthScore} />}>
+              <SectionCard title="Report Overview" right={<ScoreBadge score={displayScore} label={scoreLabel} />}>
                 <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
                   <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
                     <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Month</p>
@@ -497,7 +542,7 @@ const MonthlyReport = () => {
                   </div>
                 </SectionCard>
 
-                <SectionCard title="Financial Health & Risks" right={<ScoreBadge score={report.assessment?.financialHealthScore} />}>
+                <SectionCard title="Financial Health & Risks" right={<ScoreBadge score={displayScore} label={scoreLabel} />}>
                   <div className="grid gap-2 md:gap-3 grid-cols-2">
                     <div className="rounded-lg md:rounded-xl bg-white border border-warmgray-300 px-3 py-3 md:px-4 md:py-4 dark:bg-white/5 dark:border-white/10">
                       <p className="text-[10px] md:text-xs text-warmgray-700 dark:text-slate-400">Debt-to-Income</p>
@@ -770,7 +815,14 @@ const MonthlyReport = () => {
               )}
 
               {healthScoreLineData.length > 0 && (
-                <SectionCard title="Financial Health Timeline">
+                <SectionCard
+                  title="Financial Health Timeline"
+                  right={hasAnyAIScores ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                      ✨ AI Powered
+                    </span>
+                  ) : null}
+                >
                   <div className="h-48 md:h-64 py-2 md:py-3">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={healthScoreLineData} margin={{ top: 15, right: 40, left: 10, bottom: 15 }}>
@@ -780,7 +832,7 @@ const MonthlyReport = () => {
                         <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} domain={[1, 5]} width={40} />
                         <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)' }} />
                         <Legend wrapperStyle={{ color: '#cbd5f5', paddingTop: '15px' }} />
-                        <Line yAxisId="left" type="monotone" dataKey="score" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} name="Health Score" />
+                        <Line yAxisId="left" type="monotone" dataKey="score" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} name={hasAnyAIScores ? "AI Health Score" : "Health Score"} />
                         <Line yAxisId="right" type="monotone" dataKey="stressLevel" stroke="#f43f5e" strokeWidth={2} dot={{ r: 3 }} name="Stress Level" />
                       </LineChart>
                     </ResponsiveContainer>
@@ -808,17 +860,26 @@ const MonthlyReport = () => {
                 <SectionCard title="Category Insights">
                   <div className="grid gap-2 sm:gap-6 md:grid-cols-2">
                     <div>
-                      <p className="text-sm font-semibold text-white mb-3">Top Increases</p>
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <div className="p-1.5 rounded-full bg-rose-500/20 text-rose-300">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                            <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <h4 className="text-sm font-semibold text-white">Top Increases</h4>
+                      </div>
                       <div className="space-y-2">
                         {(categoryInsights?.topIncreases ?? []).map((item) => (
-                          <div key={item.key} className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                            <div>
-                              <p className="text-sm text-white">{item.label}</p>
-                              <p className="text-xs text-slate-400">Prev {formatCurrency(item.prior)}</p>
+                          <div key={item.key} className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-3 py-2 hover:bg-rose-500/5 transition-colors group">
+                            <div className="flex flex-col justify-center">
+                              <p className="text-sm font-medium text-white group-hover:text-rose-200 transition-colors">{item.label}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-semibold text-white">{formatSignedCurrency(item.change)}</p>
-                              <p className="text-xs text-emerald-400">{formatSignedPercent(item.percentChange)}</p>
+                              <p className="text-sm font-bold text-white">{formatSignedCurrency(item.change)}</p>
+                              <div className="flex items-center justify-end gap-1.5 text-xs">
+                                <span className="text-slate-500">was {formatCurrency(item.prior)}</span>
+                                <span className="text-rose-400 font-medium opacity-90">{formatSignedPercent(item.percentChange)}</span>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -826,17 +887,26 @@ const MonthlyReport = () => {
                       </div>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white mb-3">Top Decreases</p>
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <div className="p-1.5 rounded-full bg-emerald-500/20 text-emerald-300">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                            <path fillRule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <h4 className="text-sm font-semibold text-white">Top Decreases</h4>
+                      </div>
                       <div className="space-y-2">
                         {(categoryInsights?.topDecreases ?? []).map((item) => (
-                          <div key={item.key} className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-                            <div>
-                              <p className="text-sm text-white">{item.label}</p>
-                              <p className="text-xs text-slate-400">Prev {formatCurrency(item.prior)}</p>
+                          <div key={item.key} className="flex items-center justify-between rounded-lg bg-white/5 border border-white/10 px-3 py-2 hover:bg-emerald-500/5 transition-colors group">
+                            <div className="flex flex-col justify-center">
+                              <p className="text-sm font-medium text-white group-hover:text-emerald-200 transition-colors">{item.label}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-semibold text-white">{formatSignedCurrency(item.change)}</p>
-                              <p className="text-xs text-rose-400">{formatSignedPercent(item.percentChange)}</p>
+                              <p className="text-sm font-bold text-white">{formatSignedCurrency(item.change)}</p>
+                              <div className="flex items-center justify-end gap-1.5 text-xs">
+                                <span className="text-slate-500">was {formatCurrency(item.prior)}</span>
+                                <span className="text-emerald-400 font-medium opacity-90">{formatSignedPercent(item.percentChange)}</span>
+                              </div>
                             </div>
                           </div>
                         ))}

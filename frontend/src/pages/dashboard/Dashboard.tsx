@@ -12,6 +12,7 @@ import {
   type RecentExpensesResponse,
   type DashboardTopCategory,
   type DashboardGoalInsights,
+  type AIInsights,
 } from '../../services/dashboardService';
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -80,22 +81,39 @@ const StatCard = ({ title, value, subtext }: { title: string; value: string; sub
   </div>
 );
 
-const SummaryGrid = ({ summary }: { summary: DashboardSummary }) => (
-  <div className="grid gap-2 sm:gap-6 grid-cols-2 xl:grid-cols-4">
-    <StatCard title="Monthly Income" value={formatCurrency(summary.totalIncome)} />
-    <StatCard title="Monthly Expenses" value={formatCurrency(summary.totalExpenses)} />
-    <StatCard
-      title="Savings This Month"
-      value={summary.totalSavings === null ? '—' : formatCurrency(summary.totalSavings)}
-      subtext={summary.savingsRate === null ? undefined : `Savings Rate: ${formatPercent(summary.savingsRate)}`}
-    />
-    <StatCard
-      title="Financial Health Score"
-      value={summary.financialHealthScore === null || summary.financialHealthScore === undefined ? 'N/A' : `${summary.financialHealthScore}/100`}
-      subtext={summary.financialHealthScore === null || summary.financialHealthScore === undefined ? 'Add expenses to calculate' : summary.meets_50_30_20_rule === null ? undefined : summary.meets_50_30_20_rule ? 'Aligned with 50/30/20 guideline' : 'Review spending mix'}
-    />
-  </div>
-);
+const SummaryGrid = ({ summary }: { summary: DashboardSummary }) => {
+  // Use AI health score if available, otherwise fall back to calculated score
+  const aiScore = summary.aiInsights?.health?.score;
+  const aiCategory = summary.aiInsights?.health?.category;
+  const displayScore = aiScore ?? summary.financialHealthScore;
+  const scoreLabel = aiScore !== undefined ? 'AI Health Score' : 'Financial Health Score';
+  const scoreSubtext = aiScore !== undefined
+    ? `${aiCategory} • Powered by ML`
+    : (summary.financialHealthScore === null || summary.financialHealthScore === undefined
+      ? 'Add expenses to calculate'
+      : summary.meets_50_30_20_rule === null
+        ? undefined
+        : summary.meets_50_30_20_rule
+          ? 'Aligned with 50/30/20 guideline'
+          : 'Review spending mix');
+
+  return (
+    <div className="grid gap-2 sm:gap-6 grid-cols-2 xl:grid-cols-4">
+      <StatCard title="Monthly Income" value={formatCurrency(summary.totalIncome)} />
+      <StatCard title="Monthly Expenses" value={formatCurrency(summary.totalExpenses)} />
+      <StatCard
+        title="Savings This Month"
+        value={summary.totalSavings === null ? '—' : formatCurrency(summary.totalSavings)}
+        subtext={summary.savingsRate === null ? undefined : `Savings Rate: ${formatPercent(summary.savingsRate)}`}
+      />
+      <StatCard
+        title={scoreLabel}
+        value={displayScore === null || displayScore === undefined ? 'N/A' : `${displayScore}/100`}
+        subtext={scoreSubtext}
+      />
+    </div>
+  );
+};
 
 const TopCategoriesList = ({ categories, totalExpenses }: { categories: DashboardTopCategory[]; totalExpenses: number | null }) => {
   if (!categories.length) return null;
@@ -217,8 +235,8 @@ const SavingsProgressCard = ({ rate, goalInsights }: { rate: number | null; goal
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium text-coral-600 dark:text-slate-400 truncate mr-2">{goal.name}</p>
               <p className={`text-xs font-semibold whitespace-nowrap ${goal.progress.onTrack ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {Math.round((goal.progress.progressPercent !== null 
-                  ? goal.progress.progressPercent 
+                {Math.round((goal.progress.progressPercent !== null
+                  ? goal.progress.progressPercent
                   : (goal.monthlyTargetAmount ? (goal.progress.lastContribution || 0) / goal.monthlyTargetAmount : 0)
                 ) * 100)}%
                 {goal.progress.onTrack ? ' On Track' : ' Behind'}
@@ -227,11 +245,11 @@ const SavingsProgressCard = ({ rate, goalInsights }: { rate: number | null; goal
             <div className="h-3 w-full rounded-full bg-coral-200 overflow-hidden dark:bg-peach-50/10">
               <div
                 className={`h-3 rounded-full transition-all duration-500 ${goal.progress.onTrack ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-amber-500 to-rose-500'}`}
-                style={{ 
-                  width: `${Math.min(100, Math.round((goal.progress.progressPercent !== null 
-                    ? goal.progress.progressPercent 
+                style={{
+                  width: `${Math.min(100, Math.round((goal.progress.progressPercent !== null
+                    ? goal.progress.progressPercent
                     : (goal.monthlyTargetAmount ? (goal.progress.lastContribution || 0) / goal.monthlyTargetAmount : 0)
-                  ) * 100))}%` 
+                  ) * 100))}%`
                 }}
               />
             </div>
@@ -279,9 +297,9 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
   if (!recent || !recent.hasExpensesData || !recent.expenses.length) {
     return null;
   }
-  
+
   const last = recent.expenses.slice(0, 6).reverse();
-  
+
   // Show message if insufficient data for meaningful trend
   if (last.length < 3) {
     return (
@@ -306,12 +324,12 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
       </div>
     );
   }
-  
+
   const values = last.map((e) => e.totalExpenses);
   const max = Math.max(...values, 1);
   const min = Math.min(...values);
   const avgSpending = values.reduce((sum, v) => sum + v, 0) / values.length;
-  
+
   const chartData = last.map(e => ({
     name: new Date(e.monthYear).toLocaleDateString('en-US', { month: 'short' }),
     value: e.totalExpenses,
@@ -334,8 +352,8 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
           onPointerLeave={hideChartFocus}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart 
-              data={chartData} 
+            <BarChart
+              data={chartData}
               margin={{ top: 10, right: 0, left: 0, bottom: 0 }}
               onMouseMove={(state: TooltipMouseState) => {
                 if (state.isTooltipActive && typeof state.activeTooltipIndex === 'number') {
@@ -347,11 +365,11 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
               }}
               onMouseLeave={hideChartFocus}
             >
-              <XAxis 
-                dataKey="name" 
-                stroke="#94a3b8" 
-                tickLine={false} 
-                axisLine={false} 
+              <XAxis
+                dataKey="name"
+                stroke="#94a3b8"
+                tickLine={false}
+                axisLine={false}
                 tick={{ fontSize: 10 }}
               />
               <YAxis
@@ -387,15 +405,15 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
                   else if (entry.isAboveAvg) color = '#fbbf24'; // amber-400
 
                   return (
-                    <Cell 
-                      key={`cell-${index}`} 
+                    <Cell
+                      key={`cell-${index}`}
                       fill={color}
                       style={{
-                        filter: activeIndex === index 
-                          ? `brightness(1.2) drop-shadow(0 0 8px ${color}80)` 
-                          : activeIndex !== null 
-                          ? 'opacity(0.5)' 
-                          : 'none',
+                        filter: activeIndex === index
+                          ? `brightness(1.2) drop-shadow(0 0 8px ${color}80)`
+                          : activeIndex !== null
+                            ? 'opacity(0.5)'
+                            : 'none',
                         transition: 'all 0.3s ease',
                         cursor: 'pointer'
                       }}
@@ -406,7 +424,7 @@ const SpendingTrendMiniChart = ({ recent }: { recent: RecentExpensesResponse | n
             </BarChart>
           </ResponsiveContainer>
         </div>
-        
+
         {/* Stats below chart */}
         <div className="pt-3 border-t border-white/5 grid grid-cols-3 gap-2 text-xs">
           <div className="text-left">
@@ -441,6 +459,175 @@ const LoadingSkeleton = () => (
     <div className="h-64 rounded-2xl bg-peach-50/10" />
   </div>
 );
+
+const AIInsightsCard = ({ insights }: { insights: AIInsights | null | undefined }) => {
+  if (!insights) return null;
+
+  const priorityConfig = {
+    high: {
+      bg: 'bg-gradient-to-r from-rose-500/20 to-pink-500/20',
+      border: 'border-rose-500/40',
+      text: 'text-rose-300',
+      icon: '⚠️',
+    },
+    medium: {
+      bg: 'bg-gradient-to-r from-amber-500/20 to-orange-500/20',
+      border: 'border-amber-500/40',
+      text: 'text-amber-300',
+      icon: '💡',
+    },
+    low: {
+      bg: 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20',
+      border: 'border-emerald-500/40',
+      text: 'text-emerald-300',
+      icon: '✓',
+    },
+  };
+
+  const categoryConfig: Record<string, { color: string; gradient: string; glow: string }> = {
+    Excellent: { color: 'text-emerald-400', gradient: 'from-emerald-500 to-teal-500', glow: 'shadow-emerald-500/30' },
+    Good: { color: 'text-teal-400', gradient: 'from-teal-500 to-cyan-500', glow: 'shadow-teal-500/30' },
+    Fair: { color: 'text-amber-400', gradient: 'from-amber-500 to-orange-500', glow: 'shadow-amber-500/30' },
+    Poor: { color: 'text-rose-400', gradient: 'from-rose-500 to-red-500', glow: 'shadow-rose-500/30' },
+  };
+
+  const healthConfig = insights.health ? categoryConfig[insights.health.category] || categoryConfig.Fair : categoryConfig.Fair;
+  const score = insights.health?.score ?? 0;
+  const circumference = 2 * Math.PI * 45;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+
+  return (
+    <div className="rounded-xl sm:rounded-2xl border border-violet-500/20 bg-gradient-to-br from-slate-900/80 via-violet-950/30 to-slate-900/80 px-3 py-4 sm:px-6 sm:py-6 shadow-xl shadow-violet-500/10 backdrop-blur-xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h3 className="text-base sm:text-xl font-bold text-white flex items-center gap-2 sm:gap-3">
+          <span className="relative inline-flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10">
+            <span className="absolute inset-0 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 animate-pulse" />
+            <span className="relative inline-flex items-center justify-center w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-slate-900/80">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </span>
+          </span>
+          AI Insights
+        </h3>
+        <span className="text-[9px] sm:text-xs font-bold uppercase tracking-widest text-violet-400 bg-violet-500/10 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-violet-500/30">
+          ✨ ML Powered
+        </span>
+      </div>
+
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+        {/* Health Score - Circular Gauge */}
+        {insights.health && (
+          <div className="lg:col-span-1 flex flex-col items-center justify-center p-4 sm:p-5 rounded-xl bg-gradient-to-br from-white/5 to-transparent border border-white/10">
+            <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+              {/* Background circle */}
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  className="text-white/10"
+                />
+                {/* Progress circle */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="url(#scoreGradient)"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  className="transition-all duration-1000 ease-out"
+                />
+                <defs>
+                  <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" className={`${healthConfig.color}`} stopColor="currentColor" />
+                    <stop offset="100%" className={`${healthConfig.color}`} stopColor="currentColor" style={{ opacity: 0.6 }} />
+                  </linearGradient>
+                </defs>
+              </svg>
+              {/* Score text */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-2xl sm:text-3xl font-bold ${healthConfig.color}`}>{score}</span>
+                <span className="text-[10px] sm:text-xs text-slate-400">/ 100</span>
+              </div>
+            </div>
+            <div className="mt-2 sm:mt-3 text-center">
+              <p className={`text-sm sm:text-base font-semibold ${healthConfig.color}`}>{insights.health.category}</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">AI Health Score</p>
+            </div>
+          </div>
+        )}
+
+        {/* Forecast & Recommendations */}
+        <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+          {/* Forecast */}
+          {insights.forecast && (
+            <div className="p-4 sm:p-5 rounded-xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-500 rotate-12">
+                <span className="text-8xl">📊</span>
+              </div>
+
+              <div className="flex items-center justify-between mb-4 relative z-10">
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-400 text-lg">📊</span>
+                  <p className="text-sm font-medium text-blue-200">Expense Forecast</p>
+                </div>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border backdrop-blur-sm ${insights.forecast.trend === 'up'
+                  ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                  : insights.forecast.trend === 'down'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                    : 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+                  }`}>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{insights.forecast.trend}</span>
+                  <span className="text-xs">
+                    {insights.forecast.trend === 'up' ? '↗' : insights.forecast.trend === 'down' ? '↘' : '→'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-baseline gap-3 relative z-10">
+                <p className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                  {currencyFormatter.format(insights.forecast.next_month)}
+                </p>
+                <p className="text-xs text-slate-400 font-medium">predicted for next month</p>
+              </div>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {insights.recommendations && insights.recommendations.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs sm:text-sm font-semibold text-slate-300 flex items-center gap-2">
+                <span>💡</span> Smart Recommendations
+              </p>
+              {insights.recommendations.slice(0, 2).map((rec, idx) => {
+                const config = priorityConfig[rec.priority] || priorityConfig.low;
+                return (
+                  <div
+                    key={idx}
+                    className={`p-3 sm:p-4 rounded-xl ${config.bg} border ${config.border} backdrop-blur-sm`}
+                  >
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <span className="text-sm sm:text-base flex-shrink-0">{config.icon}</span>
+                      <p className={`text-xs sm:text-sm ${config.text} leading-relaxed`}>{rec.message}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const EmptyState = ({ onAddExpense, message }: { onAddExpense: () => void; message?: string }) => (
   <div className="rounded-2xl border border-dashed border-coral-300 bg-peach-50/50 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-900/60">
@@ -533,8 +720,8 @@ const Dashboard = () => {
         typeof err === 'string'
           ? err
           : err instanceof Error
-          ? err.message
-          : 'Failed to load dashboard data';
+            ? err.message
+            : 'Failed to load dashboard data';
       setError(message);
     } finally {
       setIsLoadingData(false);
@@ -590,14 +777,7 @@ const Dashboard = () => {
       });
     }
 
-    if (summary.financialHealthScore !== null) {
-      stats.push({
-        label: 'Financial Health Score',
-        value: `${summary.financialHealthScore}/100`,
-        detail: 'Higher score indicates stronger overall health',
-        tone: summary.financialHealthScore >= 70 ? 'positive' : summary.financialHealthScore >= 50 ? 'neutral' : 'negative',
-      });
-    }
+    // Note: Financial Health Score is now displayed in AI Insights section
 
     return stats;
   }, [summary, recent]);
@@ -667,6 +847,12 @@ const Dashboard = () => {
                     <SavingsProgressCard rate={summary.savingsRate} goalInsights={summary.goalInsights} />
                     <SpendingTrendMiniChart recent={recent} />
                   </div>
+                  {/* AI Insights Section */}
+                  {summary.aiInsights && (
+                    <div className="grid gap-2 sm:gap-6 lg:grid-cols-1">
+                      <AIInsightsCard insights={summary.aiInsights} />
+                    </div>
+                  )}
                   {/* Recent months view removed */}
                 </div>
               )}

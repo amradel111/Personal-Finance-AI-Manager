@@ -23,10 +23,10 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
@@ -54,6 +54,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/budgets', require('./routes/budgets'));
+app.use('/api/ml', require('./routes/mlRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

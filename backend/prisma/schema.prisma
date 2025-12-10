@@ -101,6 +101,13 @@ model MonthlyExpense {
   highestSpendingCategory         String   @map("highest_spending_category")
   meets50_30_20Rule               Boolean  @map("meets_50_30_20_rule")
   
+  // AI/ML generated fields
+  aiHealthScore                   Int?     @map("ai_health_score")
+  aiHealthCategory                String?  @map("ai_health_category")
+  aiForecastNextMonth             Float?   @map("ai_forecast_next_month")
+  aiForecastTrend                 String?  @map("ai_forecast_trend")
+  aiProcessedAt                   DateTime? @map("ai_processed_at")
+  
   createdAt                       DateTime @default(now()) @map("created_at")
   updatedAt                       DateTime @updatedAt @map("updated_at")
 

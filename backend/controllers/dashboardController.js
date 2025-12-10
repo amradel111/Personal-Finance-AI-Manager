@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { computeGoalProgressForUser, getPrimaryGoal } = require('../utils/goals');
+const mlService = require('../utils/mlService');
 
 const SAVINGS_BENCHMARK_RATE = 0.2; // 20% savings benchmark
 
@@ -71,16 +72,16 @@ const getDashboardSummary = async (req, res) => {
       activeGoals: activeGoals.length,
       primaryGoal: primaryGoal
         ? {
-            id: primaryGoal.id,
-            name: primaryGoal.name,
-            type: primaryGoal.type,
-            status: primaryGoal.status,
-            targetAmount: primaryGoal.targetAmount,
-            monthlyTargetAmount: primaryGoal.monthlyTargetAmount,
-            startMonthYear: primaryGoal.startMonthYear,
-            targetMonthYear: primaryGoal.targetMonthYear,
-            progress: primaryGoal.progress,
-          }
+          id: primaryGoal.id,
+          name: primaryGoal.name,
+          type: primaryGoal.type,
+          status: primaryGoal.status,
+          targetAmount: primaryGoal.targetAmount,
+          monthlyTargetAmount: primaryGoal.monthlyTargetAmount,
+          startMonthYear: primaryGoal.startMonthYear,
+          targetMonthYear: primaryGoal.targetMonthYear,
+          progress: primaryGoal.progress,
+        }
         : null,
       goals: activeGoals.map(g => ({
         id: g.id,
@@ -127,6 +128,21 @@ const getDashboardSummary = async (req, res) => {
 
     const topSpendingCategories = sortTopCategories(latestExpense);
 
+    // Fetch AI insights (non-blocking)
+    let aiInsights = null;
+    try {
+      const historicalExpenses = expensesAsc.map(e => e.totalExpenses).filter(e => e != null);
+      aiInsights = await mlService.getInsights({
+        income,
+        expenses: totalExpenses,
+        savings: savingsThisMonth,
+        total_debt: profile?.totalDebt ?? 0,
+        historical_expenses: historicalExpenses,
+      });
+    } catch (aiError) {
+      console.warn('AI insights unavailable:', aiError.message);
+    }
+
     return res.json({
       summary: {
         hasExpensesData: true,
@@ -144,6 +160,7 @@ const getDashboardSummary = async (req, res) => {
           ? savingsRate >= SAVINGS_BENCHMARK_RATE
           : null,
         goalInsights,
+        aiInsights,
       }
     });
   } catch (error) {

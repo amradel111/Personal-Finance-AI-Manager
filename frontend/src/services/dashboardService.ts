@@ -27,6 +27,25 @@ export interface DashboardGoalInsights {
   goals: DashboardGoal[];
 }
 
+export interface AIRecommendation {
+  type: string;
+  priority: 'high' | 'medium' | 'low';
+  message: string;
+}
+
+export interface AIInsights {
+  health: {
+    score: number;
+    category: string;
+  } | null;
+  forecast: {
+    next_month: number;
+    trend: string;
+  } | null;
+  anomalies: unknown[];
+  recommendations: AIRecommendation[];
+}
+
 export interface DashboardSummary {
   hasExpensesData: boolean;
   monthYear: string | null;
@@ -41,6 +60,7 @@ export interface DashboardSummary {
   userSavingsGoalMonthly?: number | null;
   benchmarkMet?: boolean | null;
   goalInsights?: DashboardGoalInsights;
+  aiInsights?: AIInsights | null;
   message?: string;
 }
 

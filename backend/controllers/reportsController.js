@@ -211,6 +211,12 @@ const getMonthlyReport = async (req, res) => {
         spendingVsLastMonthPercentage: exp.spendingVsLastMonthPercentage ?? null,
         assessment: expAssessment,
         categories: categoryAmounts,
+        // AI-generated scores (if processed)
+        aiHealthScore: exp.aiHealthScore ?? null,
+        aiHealthCategory: exp.aiHealthCategory ?? null,
+        aiForecastNextMonth: exp.aiForecastNextMonth ?? null,
+        aiForecastTrend: exp.aiForecastTrend ?? null,
+        aiProcessedAt: exp.aiProcessedAt ?? null,
       };
     });
 
@@ -221,7 +227,8 @@ const getMonthlyReport = async (req, res) => {
       return comparator(item, acc) ? item : acc;
     }, null);
 
-    const scoreValues = trendMonths.map((m) => m.assessment?.financialHealthScore ?? null).filter((v) => Number.isFinite(v));
+    // Use AI health scores if available, otherwise fall back to assessment scores
+    const scoreValues = trendMonths.map((m) => m.aiHealthScore ?? m.assessment?.financialHealthScore ?? null).filter((v) => Number.isFinite(v));
     const stressValues = trendMonths.map((m) => m.assessment?.financialStressLevel ?? null).filter((v) => Number.isFinite(v));
 
     const flagFields = [
@@ -241,7 +248,8 @@ const getMonthlyReport = async (req, res) => {
     }, {});
 
     const healthDistribution = trendMonths.reduce((acc, m) => {
-      const label = m.assessment?.overallFinancialHealth ?? 'unknown';
+      // Use AI category if available
+      const label = m.aiHealthCategory ?? m.assessment?.overallFinancialHealth ?? 'unknown';
       acc[label] = (acc[label] || 0) + 1;
       return acc;
     }, {});
@@ -258,7 +266,8 @@ const getMonthlyReport = async (req, res) => {
       avgFinancialStressLevel: stressValues.length ? avg(stressValues) : null,
       flagCounts,
       overallHealthDistribution: healthDistribution,
-      mostChallengingMonth: pickExtreme(trendMonths, (a, b) => (a.assessment?.financialHealthScore ?? 100) < (b.assessment?.financialHealthScore ?? 100)),
+      // Use AI score for most challenging month if available
+      mostChallengingMonth: pickExtreme(trendMonths, (a, b) => (a.aiHealthScore ?? a.assessment?.financialHealthScore ?? 100) < (b.aiHealthScore ?? b.assessment?.financialHealthScore ?? 100)),
     };
 
     const previousSavings = computeSavingsForExpense(previousExpense);
@@ -295,6 +304,12 @@ const getMonthlyReport = async (req, res) => {
       highestSpendingCategory: expense.highestSpendingCategory || null,
       financialHealthScore: assessment.financialHealthScore,
       optimizationPriority: assessment.optimizationPriority,
+      // AI-generated scores for this specific month
+      aiHealthScore: expense.aiHealthScore ?? null,
+      aiHealthCategory: expense.aiHealthCategory ?? null,
+      aiForecastNextMonth: expense.aiForecastNextMonth ?? null,
+      aiForecastTrend: expense.aiForecastTrend ?? null,
+      aiProcessedAt: expense.aiProcessedAt ?? null,
       profileSummary: {
         householdSize: profile.householdSize,
         numAdults: profile.numAdults,

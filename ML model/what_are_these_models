@@ -1,0 +1,23 @@
+1- The Financial Health Classifier provides a clear output like this:
+"Good" (65% confidence)
+This means:
+• Your financial health is classified as
+"Good"
+• The model is 65% confident in this assessment
+• The remaining 35% is distributed among the other categories (Poor, Fair, Excellent)
+The classification is based on your financial data, including income, expenses, savings, and debt levels.
+
+2. Expense Forecaster
+Output (for the next 3 months):
+• Dec 2025: $1,250.50
+• Jan 2026: $1,280.75
+• Feb 2026: $1,265.30
+This shows your predicted monthly expenses for the upcoming months.
+
+3. Anomaly Detector
+Output:
+• "ANOMALY DETECTED"
+• Transaction: $2,500.00
+• Anomaly Score: 0.92 (Threshold:
+0.85)
+This flags unusual financial activity that significantly deviates from your normal spending patterns.

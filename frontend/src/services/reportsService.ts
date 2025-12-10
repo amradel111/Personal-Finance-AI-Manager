@@ -72,6 +72,12 @@ export interface ReportPayload {
   highestSpendingCategory: string | null;
   financialHealthScore: number;
   optimizationPriority: string;
+  // AI-generated scores for this specific month
+  aiHealthScore: number | null;
+  aiHealthCategory: string | null;
+  aiForecastNextMonth: number | null;
+  aiForecastTrend: string | null;
+  aiProcessedAt: string | null;
   profileSummary: ProfileSummary;
   monthOverMonth: MonthOverMonth;
   trendAnalysis: TrendAnalysis;
@@ -138,6 +144,12 @@ export interface TrendMonth {
   spendingVsLastMonthPercentage: number | null;
   assessment: AssessmentPayload;
   categories: Record<string, number>;
+  // AI-generated scores
+  aiHealthScore: number | null;
+  aiHealthCategory: string | null;
+  aiForecastNextMonth: number | null;
+  aiForecastTrend: string | null;
+  aiProcessedAt: string | null;
 }
 
 export interface TrendStats {
@@ -188,3 +200,62 @@ export const getMonthlyReport = async (monthYear: string): Promise<MonthlyReport
   const { data } = await api.get(`/reports/monthly/${monthYear}`);
   return data;
 };
+
+// AI Insights types
+export interface AIHealthScore {
+  score: number;
+  category: string;
+}
+
+export interface AIForecast {
+  next_month: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+export interface AIRecommendation {
+  type: string;
+  priority: 'high' | 'medium' | 'low';
+  message: string;
+}
+
+export interface AIInsights {
+  health: AIHealthScore | null;
+  forecast: AIForecast | null;
+  anomalies: unknown[];
+  recommendations: AIRecommendation[];
+}
+
+export const getAIInsights = async (): Promise<AIInsights | null> => {
+  try {
+    const { data } = await api.get('/ml/user-insights/me');
+    return data.insights || null;
+  } catch (error) {
+    console.error('Failed to fetch AI insights:', error);
+    return null;
+  }
+};
+
+export interface ProcessHistoryResult {
+  status: string;
+  message: string;
+  processed: number;
+  total: number;
+  results: Array<{
+    monthYear: string;
+    status: string;
+    aiHealthScore?: number;
+    aiHealthCategory?: string;
+    error?: string;
+  }>;
+}
+
+export const processAIHistory = async (): Promise<ProcessHistoryResult | null> => {
+  try {
+    const { data } = await api.post('/ml/process-history');
+    return data;
+  } catch (error) {
+    console.error('Failed to process AI history:', error);
+    return null;
+  }
+};
+
