@@ -444,6 +444,7 @@ def batch_process_all_users():
 
 if __name__ == '__main__':
     load_or_train_models()
-    port = int(os.environ.get('ML_SERVICE_PORT', 5001))
+    port = int(os.environ.get('PORT', os.environ.get('ML_SERVICE_PORT', 5001)))
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     logger.info(f"Starting ML Service on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)

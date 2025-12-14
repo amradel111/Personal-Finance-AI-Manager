@@ -1,7 +1,7 @@
 # Project Structure
 
 > This document is a **map for humans and AI agents** to quickly understand where things live and how the system fits together.
-> **Last Updated:** 2025-12-06
+> **Last Updated:** 2025-12-10
 
 ---
 
@@ -33,7 +33,14 @@ Use this file to **locate the right file quickly**, then jump into the implement
     - `monthly_spending.csv` (Dataset 2)
     - `financial_health_assessment.csv` (Dataset 3)
 - **`ML model/`**
-  - Placeholder for future ML models and related assets.
+  - Python Flask API serving three trained ML models:
+    - `app.py` – Flask server exposing `/health`, `/train`, `/predict/*`, `/insights`, `/batch/process-all-users`.
+    - `anomaly_detector.py` – Detects unusual spending patterns.
+    - `expense_forecaster.py` – Forecasts future expenses using historical data.
+    - `financial_health_classifier.py` – Classifies financial health score.
+    - `base_model.py` – Shared base class for ML models.
+    - `trained_models/` – Directory for persisted model artifacts.
+    - `requirements.txt`, `Procfile`, `railway.json`, `runtime.txt` – Deployment configs.
 - **`agents.md`**
   - Instructions and expectations for AI agents working on this repo.
 - **`docs/`**
@@ -65,21 +72,23 @@ Use this file to **locate the right file quickly**, then jump into the implement
   - `authController.js` – signup/login, validation, JWT issuance, lastLogin handling, profile check.
   - `profileController.js` – create/get/update user profile (Dataset 1) with validation and derived metrics.
   - `expensesController.js` – CRUD for monthly expenses (Dataset 2), totals/ratios/50-30-20, triggers health updates.
-  - `dashboardController.js` – aggregates latest income/expenses/savings/top categories for dashboard.
-  - `reportsController.js` – monthly report + history, trend analysis, integrates financial health.
+  - `dashboardController.js` – aggregates latest income/expenses/savings/top categories + **AI insights** for dashboard.
+  - `reportsController.js` – monthly report + history, trend analysis, integrates financial health and AI scores.
   - `budgetsController.js` – CRUD for budgets, category allocations, and progress snapshots.
   - `goalsController.js` – CRUD for financial goals and progress tracking.
+  - `mlController.js` – ML service integration: batch process users, user insights, process historical AI scores.
 - **`backend/middleware/`**
   - `authenticate.js` – JWT verification, loads user into `req.user`.
 - **`backend/routes/`**
   - `auth.js` – `/api/auth` (signup, login, profile, check-profile).
   - `profile.js` – `/api/profile` (create/get/update).
   - `expenses.js` – `/api/expenses` (create/list/by-month/update/delete).
-  - `dashboard.js` – `/api/dashboard/summary`, `/api/dashboard/recent`.
+  - `dashboard.js` – `/api/dashboard/summary`, `/api/dashboard/recent`, `/api/dashboard/ai-insights`.
   - `reports.js` – `/api/reports/monthly/:month_year`, `/api/reports/history`.
   - `budgets.js` – `/api/budgets` CRUD + budget status endpoints.
   - `goals.js` – `/api/goals` CRUD + progress endpoints.
   - `notifications.js` – notification/email triggers (used by CI/email tests).
+  - `mlRoutes.js` – `/api/ml/health`, `/api/ml/user-insights/:userId`, `/api/ml/process-all-users`, `/api/ml/process-history`.
 - **`backend/utils/`**
   - `jwt.js` – token generation/verification.
   - `passwordUtils.js` – bcrypt hash/compare.
@@ -88,6 +97,7 @@ Use this file to **locate the right file quickly**, then jump into the implement
   - `health.js` – financial health scoring and flags based on profile + expenses.
   - `goals.js` – goal calculations/progress helpers.
   - `emailService.js` – mail transport + templating helpers.
+  - `mlService.js` – HTTP client for Python ML service; proxies health/forecast/anomaly/insights requests.
 - **`backend/prisma/`**
   - `schema.prisma` – full Prisma schema (users, user_profiles, monthly_expenses, financial_health, goals, budgets, password_reset_tokens).
   - `migrations/` – database migrations.
@@ -104,10 +114,14 @@ Use this file to **locate the right file quickly**, then jump into the implement
   - DB connection (`DATABASE_URL`), JWT secrets, client URL, etc.
 - **`backend/README.md`**
   - Setup instructions and API overview.
- - **`EMAIL_NOTIFICATIONS.md`**
-   - Email/notification behaviors and testing notes.
- - **`ci-phase6.js`**, **`fix-health-scores.js`**
-   - CI runner and one-off health score repair script.
+- **`EMAIL_NOTIFICATIONS.md`**
+  - Email/notification behaviors and testing notes.
+- **`ci-phase6.js`**, **`fix-health-scores.js`**
+  - CI runner and one-off health score repair script.
+- **`backfill-ai-scores.js`**
+  - Batch script to retroactively compute AI health scores for all months.
+- **`process-all-users.js`**
+  - CLI script to call `/api/ml/process-all-users` for every user in the database.
 
 ### 2.3 Backend Test & Utility Scripts
 
@@ -193,11 +207,23 @@ _All located under `backend/`._
 ## 4. Data & ML Assets
 
 - **`datasets/`** (root)
-  - Ground truth CSVs used to design schema and business logic.
+  - Ground truth CSVs used to design schema and business logic:
+    - `user_profile.csv` – demographic and financial profile data.
+    - `monthly_spending.csv` – monthly expenses by category.
+    - `financial_health_assessment.csv` – labeled health scores for ML training.
 - **`backend/prisma/schema.prisma`** and **`backend/prisma/DATABASE_SCHEMA.md`**
   - Canonical mapping from datasets → relational tables.
+  - `monthly_expenses` table now includes AI fields: `aiHealthScore`, `aiHealthCategory`, `aiForecastNextMonth`, `aiForecastTrend`, `aiProcessedAt`.
 - **`ML model/`**
-  - Reserved for future trained models, notebooks, or serving code (currently empty aside from `.gitkeep`).
+  - Python Flask microservice serving AI models:
+    - **`app.py`** – Flask entry point; routes `/health`, `/train`, `/predict/health`, `/predict/forecast`, `/predict/anomaly`, `/insights`, `/batch/process-all-users`.
+    - **`anomaly_detector.py`** – Isolation Forest–based detector for unusual spending.
+    - **`expense_forecaster.py`** – Time-series forecaster (moving average + trend adjustment).
+    - **`financial_health_classifier.py`** – Gradient Boosting classifier trained on `financial_health_assessment.csv`.
+    - **`base_model.py`** – Abstract base class shared by all models.
+    - **`trained_models/`** – Persisted `.pkl` or `.joblib` model artifacts.
+    - **`requirements.txt`** – Python dependencies (Flask, pandas, scikit-learn, etc.).
+    - **`Procfile`**, **`railway.json`**, **`runtime.txt`** – Deployment configuration for Railway/Heroku.
 
 ---
 
@@ -305,31 +331,58 @@ This section explains **how data and requests move through the system**.
    - Health metrics, flags, and positive indicators.
    - Month-over-month deltas and multi-month trends (expenses vs savings vs health scores).
 
-### 6.8 Notifications & Email Alerts
+### 6.8 AI Insights Flow (ML Integration)
+
+1. **ML Service Setup**:
+   - Python Flask service (`ML model/app.py`) runs on port 5001 (configurable via `ML_SERVICE_PORT`).
+   - Exposes `/health`, `/predict/*`, `/insights`, and `/batch/process-all-users` endpoints.
+
+2. **Dashboard AI Insights**:
+   - `Dashboard.tsx` calls `dashboardService.getAIInsights()` → `GET /api/dashboard/ai-insights`.
+   - `dashboardController.getAIInsights` proxies to `mlService.getInsights()` which calls the Python service.
+   - Returns health score, category, forecast, and recommendations displayed in the **AI Insights** card.
+
+3. **Monthly Report AI Scores**:
+   - `reportsController.getMonthlyReport` includes `aiHealthScore`, `aiHealthCategory`, `aiForecastNextMonth`, `aiForecastTrend` from `monthly_expenses` if already processed.
+   - Historical AI data powers the Financial Health Timeline chart.
+
+4. **Processing Historical AI Scores**:
+   - Authenticated user triggers `POST /api/ml/process-history` via `mlRoutes.js`.
+   - `mlController.processUserHistory` iterates all `monthly_expenses` rows, calls `/insights` for each, and persists AI fields.
+   - Enables backfilling historical months with AI-generated scores.
+
+5. **Batch Processing All Users**:
+   - Admin or scheduled job calls `POST /api/ml/process-all-users`.
+   - `mlController.processAllUsers` fetches all users, transforms data, and sends to `/batch/process-all-users` on the Python service.
+   - Useful for generating organization-wide insights or reports.
+
+### 6.9 Notifications & Email Alerts
 
 1. Authenticated clients (or automated jobs/tests) can call `/api/notifications/*` endpoints defined in `backend/routes/notifications.js`.
 2. Monthly reminder:
-  - `POST /api/notifications/monthly-reminder` with `{ lastReportMonth }` optional payload.
-  - Uses `emailService.sendMonthlyReportReminder` to nudge the user to file the latest report.
+   - `POST /api/notifications/monthly-reminder` with `{ lastReportMonth }` optional payload.
+   - Uses `emailService.sendMonthlyReportReminder` to nudge the user to file the latest report.
 3. Budget alert:
-  - `POST /api/notifications/budget-alert` with `{ category, spent, budget, percentageUsed }`.
-  - Fires `sendBudgetAlert`, ideal after comparing `actualSpending` vs `budgetedAmount`.
+   - `POST /api/notifications/budget-alert` with `{ category, spent, budget, percentageUsed }`.
+   - Fires `sendBudgetAlert`, ideal after comparing `actualSpending` vs `budgetedAmount`.
 4. Health alert:
-  - `POST /api/notifications/health-alert` with `{ alertType, details }`, where `alertType ∈ { low-health-score, no-emergency-fund, high-debt, overspending, low-savings-rate }`.
-  - Calls `sendFinancialHealthAlert` to provide tailored advice.
+   - `POST /api/notifications/health-alert` with `{ alertType, details }`, where `alertType ∈ { low-health-score, no-emergency-fund, high-debt, overspending, low-savings-rate }`.
+   - Calls `sendFinancialHealthAlert` to provide tailored advice.
 5. All routes rely on `authenticate` middleware so `req.user` provides `email`/`firstName`; transport + templating live in `backend/utils/emailService.js`.
 
-### 6.9 Testing & Verification Flow
+### 6.10 Testing & Verification Flow
 
 1. Ensure DB is migrated (`npx prisma migrate deploy`) and backend server is running on port 5000.
-2. Run targeted suites from `backend/tests/` depending on the feature you’re touching:
-  - `node phase8-api.test.js` – main regression suite for auth, profile, dashboard, expenses, reports.
-  - `node test-budgets.js` – verifies `/api/budgets` normalization and upsert logic.
-  - `node test-goals-api.js` – covers goals CRUD and progress calculations.
-  - `node test-email-notifications.js` – ensures notification endpoints call the correct email templates.
-  - `node test-api.js` – legacy wide API coverage (auth/profile/expenses) still useful for smoke tests.
-  - `node run-tests.js` – orchestrator that wires env vars and executes grouped suites (used in CI and local smoke passes).
-3. Fix any failing tests by tracing from the test script → service layer → controller → Prisma calls, ensuring fixtures (seed users) match expectations.
+2. **Start ML Service** (required for AI features): `cd "ML model" && python app.py` (runs on port 5001).
+3. Run targeted suites from `backend/tests/` depending on the feature you're touching:
+   - `node phase8-api.test.js` – main regression suite for auth, profile, dashboard, expenses, reports.
+   - `node test-budgets.js` – verifies `/api/budgets` normalization and upsert logic.
+   - `node test-goals-api.js` – covers goals CRUD and progress calculations.
+   - `node test-email-notifications.js` – ensures notification endpoints call the correct email templates.
+   - `node test-api.js` – legacy wide API coverage (auth/profile/expenses) still useful for smoke tests.
+   - `node run-tests.js` – orchestrator that wires env vars and executes grouped suites (used in CI and local smoke passes).
+4. Fix any failing tests by tracing from the test script → service layer → controller → Prisma calls, ensuring fixtures (seed users) match expectations.
+5. To verify AI integration, call `GET /api/dashboard/ai-insights` or `GET /api/ml/user-insights/me` after ensuring ML service is healthy (`GET /api/ml/health`).
 
 ---
 
